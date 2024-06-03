@@ -13,32 +13,9 @@ interface ICarbonVortex is IUpgradeable {
     error InvalidTokenLength();
 
     /**
-     * @dev triggered after a successful burn is executed
+     * @dev triggered when the tank address is updated
      */
-    event TokensBurned(
-        address indexed caller,
-        Token[] tokens,
-        uint256[] rewardAmounts,
-        uint256 burnAmount
-    );
-
-    /**
-     * @dev triggered when the rewards ppm are updated
-     */
-    event RewardsUpdated(
-        uint256 prevRewardsPPM,
-        uint256 newRewardsPPM
-    );
-
-    /**
-     * @dev returns the rewards percentage ppm
-     */
-    function rewardsPPM() external view returns (uint256);
-
-    /**
-     * @dev returns the total amount burned
-     */
-    function totalBurned() external view returns (uint256);
+    event TankSet(address prevTank, address newTank);
 
     /**
      * @dev returns the total available fees for the given token
@@ -46,18 +23,19 @@ interface ICarbonVortex is IUpgradeable {
     function availableTokens(Token token) external view returns (uint256);
     
     /**
+     * @dev returns the tank address to collect fees
+     */
+    function tank() external view returns (address);
+
+    /**
+     * @dev set the tank address to collect fees
+     */
+    function setTank(address newTank) external;
+
+    /**
      * @dev withdraws the fees of the provided tokens from Carbon
      * @dev converts them along with the available contract token balance to BNT,
      * @dev rewards the caller and burns the rest of the tokens
      */
     function execute(Token[] calldata tokens) external;
-
-    /**
-     * @dev sets the rewards percentage ppm
-     *
-     * requirements:
-     *
-     * - the caller must be the admin of the contract
-     */
-    function setRewardsPPM(uint256 newRewardsPercentagePPM) external;
 }

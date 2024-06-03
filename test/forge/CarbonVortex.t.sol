@@ -15,28 +15,11 @@ import { PPM_RESOLUTION } from "../../contracts/utility/Constants.sol";
 import { IVoucher } from "../../contracts/voucher/interfaces/IVoucher.sol";
 import { ICarbonController } from "../../contracts/carbon/interfaces/ICarbonController.sol";
 import { ICarbonVortex } from "../../contracts/vortex/interfaces/ICarbonVortex.sol";
-import { IBancorNetwork } from "../../contracts/vortex/CarbonVortex.sol";
 
 import { Token, toIERC20, NATIVE_TOKEN } from "../../contracts/token/Token.sol";
 
 contract CarbonVortexTest is TestFixture {
     using Address for address payable;
-
-    address private bancorNetworkV3;
-
-    uint256 private constant REWARDS_PPM_DEFAULT = 100_000;
-    uint256 private constant REWARDS_PPM_UPDATED = 110_000;
-
-    // Events
-    /**
-     * @dev triggered after a successful burn is executed
-     */
-    event TokensBurned(address indexed caller, Token[] tokens, uint256[] rewardAmounts, uint256 burnAmount);
-
-    /**
-     * @dev triggered when the rewards ppm are updated
-     */
-    event RewardsUpdated(uint256 prevRewardsPPM, uint256 newRewardsPPM);
 
     /**
      * @dev triggered when fees are withdrawn
@@ -44,10 +27,11 @@ contract CarbonVortexTest is TestFixture {
     event FeesWithdrawn(Token indexed token, address indexed recipient, uint256 indexed amount, address sender);
 
     /**
-     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
-     * a call to {approve}. `value` is the new allowance.
+     * @dev triggered when the tank address is updated
      */
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event TankSet(address prevTank, address newTank);
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /// @dev function to set up state before tests
     function setUp() public virtual {
@@ -55,10 +39,8 @@ contract CarbonVortexTest is TestFixture {
         systemFixture();
         // Deploy Carbon Controller and Voucher
         setupCarbonController();
-        // Deploy Bancor Network V3 mock
-        bancorNetworkV3 = address(deployBancorNetworkV3Mock());
         // Deploy Carbon Vortex
-        deployCarbonVortex(address(carbonController), bancorNetworkV3);
+        deployCarbonVortex(address(carbonController));
         // Transfer tokens to Carbon Controller
         transferTokensToCarbonController();
     }
@@ -67,23 +49,9 @@ contract CarbonVortexTest is TestFixture {
      * @dev construction tests
      */
 
-    function testShouldRevertWhenDeployingWithInvalidBNTContract() public {
-        vm.expectRevert(InvalidAddress.selector);
-        new CarbonVortex(
-            Token.wrap(address(0)),
-            ICarbonController(address(carbonController)),
-            IBancorNetwork(bancorNetworkV3)
-        );
-    }
-
     function testShouldRevertWhenDeployingWithInvalidCarbonControllerContract() public {
         vm.expectRevert(InvalidAddress.selector);
-        new CarbonVortex(bnt, ICarbonController(address(0)), IBancorNetwork(bancorNetworkV3));
-    }
-
-    function testShouldRevertWhenDeployingWithInvalidBancorV3Contract() public {
-        vm.expectRevert(InvalidAddress.selector);
-        new CarbonVortex(bnt, ICarbonController(address(carbonController)), IBancorNetwork(address(0)));
+        new CarbonVortex(ICarbonController(address(0)));
     }
 
     function testShouldBeInitialized() public {
@@ -97,87 +65,36 @@ contract CarbonVortexTest is TestFixture {
     }
 
     /**
-     * @dev rewards ppm tests
+     * @dev rewards distribution tests
      */
 
-    /// @dev test that setRewardsPPM should revert when a non admin calls it
-    function testShouldRevertWhenNonAdminAttemptsToSetTheRewardsPPM() public {
-        vm.prank(user1);
-        vm.expectRevert(AccessDenied.selector);
-        carbonVortex.setRewardsPPM(REWARDS_PPM_UPDATED);
-    }
-
-    /// @dev test that setRewardsPPM should revert when a setting to an invalid fee
-    function testShouldRevertSettingTheRewardsPPMWithAnInvalidFee() public {
-        vm.prank(admin);
-        vm.expectRevert(InvalidFee.selector);
-        carbonVortex.setRewardsPPM(PPM_RESOLUTION + 1);
-    }
-
-    /// @dev test that setRewardsPPM with the same rewards pom should be ignored
-    function testFailShouldIgnoreSettingTheSameRewardsPPM() public {
-        vm.prank(admin);
-        vm.expectEmit(false, false, false, false);
-        emit RewardsUpdated(REWARDS_PPM_DEFAULT, REWARDS_PPM_DEFAULT);
-        carbonVortex.setRewardsPPM(REWARDS_PPM_DEFAULT);
-    }
-
-    /// @dev test that admin should be able to update the rewards ppm
-    function testShouldBeAbleToSetAndUpdateTheRewardsPPM() public {
-        vm.startPrank(admin);
-        uint256 rewardsPPM = carbonVortex.rewardsPPM();
-        assertEq(rewardsPPM, REWARDS_PPM_DEFAULT);
-
-        vm.expectEmit();
-        emit RewardsUpdated(REWARDS_PPM_DEFAULT, REWARDS_PPM_UPDATED);
-        carbonVortex.setRewardsPPM(REWARDS_PPM_UPDATED);
-
-        rewardsPPM = carbonVortex.rewardsPPM();
-        assertEq(rewardsPPM, REWARDS_PPM_UPDATED);
-        vm.stopPrank();
-    }
-
-    /**
-     * @dev rewards distribution and bnt burn tests
-     */
-
-    /// @dev test should distribute rewards to user and burn bnt with token input being BNT
-    function testShouldDistributeRewardsToUserAndBurnWithTokenInputAsBNT() public {
+    /// @dev test should distribute rewards to tank with token input being BNT
+    function testShouldDistributeRewardsToTank() public {
         vm.startPrank(admin);
         uint256 amount = 50 ether;
         carbonController.testSetAccumulatedFees(bnt, amount);
 
-        uint256 rewards = carbonVortex.rewardsPPM();
-
-        uint256 balanceBefore = bnt.balanceOf(admin);
-        uint256 supplyBefore = toIERC20(bnt).totalSupply();
+        uint256 balanceBefore = bnt.balanceOf(tank);
 
         Token[] memory tokens = new Token[](1);
         tokens[0] = bnt;
         uint256[] memory expectedUserRewards = new uint256[](1);
 
-        // we don't convert bnt, so we expect to get 10% of 50 BNT
-        expectedUserRewards[0] = (amount * rewards) / PPM_RESOLUTION;
-        uint256 expectedBntBurned = amount - expectedUserRewards[0];
+        expectedUserRewards[0] = amount;
 
-        vm.expectEmit();
-        emit TokensBurned(admin, tokens, expectedUserRewards, expectedBntBurned);
         carbonVortex.execute(tokens);
 
-        uint256 balanceAfter = bnt.balanceOf(admin);
-        uint256 supplyAfter = toIERC20(bnt).totalSupply();
+        uint256 balanceAfter = bnt.balanceOf(tank);
 
         uint256 bntGain = balanceAfter - balanceBefore;
-        uint256 supplyBurned = supplyBefore - supplyAfter;
 
         assertEq(bntGain, expectedUserRewards[0]);
-        assertEq(supplyBurned, expectedBntBurned);
 
         vm.stopPrank();
     }
 
-    /// @dev test should distribute rewards to user and burn bnt if fees have accumulated
-    function testShouldDistributeRewardsToUserAndBurnIfFeesHaveAccumulated() public {
+    /// @dev test should distribute rewards to tank if fees have accumulated
+    function testShouldDistributeRewardsToTankIfFeesHaveAccumulated() public {
         vm.startPrank(admin);
         uint256[] memory tokenAmounts = new uint256[](3);
         tokenAmounts[0] = 50 ether;
@@ -188,52 +105,34 @@ contract CarbonVortexTest is TestFixture {
         carbonController.testSetAccumulatedFees(token2, tokenAmounts[1]);
         carbonController.testSetAccumulatedFees(NATIVE_TOKEN, tokenAmounts[2]);
 
-        uint256 rewards = carbonVortex.rewardsPPM();
-
         uint256[] memory balancesBefore = new uint256[](3);
-        balancesBefore[0] = token1.balanceOf(admin);
-        balancesBefore[1] = token2.balanceOf(admin);
-        balancesBefore[2] = admin.balance;
-
-        uint256 supplyBefore = toIERC20(bnt).totalSupply();
+        balancesBefore[0] = token1.balanceOf(tank);
+        balancesBefore[1] = token2.balanceOf(tank);
+        balancesBefore[2] = tank.balance;
 
         uint256[] memory expectedUserRewards = new uint256[](3);
-        uint256[] memory expectedSwapAmounts = new uint256[](3);
 
         for (uint256 i = 0; i < 3; ++i) {
-            uint256 reward = (tokenAmounts[i] * rewards) / PPM_RESOLUTION;
-            expectedUserRewards[i] = reward;
-            expectedSwapAmounts[i] = tokenAmounts[i] - expectedUserRewards[i];
+            expectedUserRewards[i] = tokenAmounts[i];
         }
-
-        // in mock bancor network v3, each token swap adds 300e18 tokens to the output
-        // we swap tokens to BNT, so the end gain is token count * 300 (without counting BNT)
-        uint256 swapGain = 300 ether * 3;
-        uint256 expectedBntBurned = expectedSwapAmounts[0] + expectedSwapAmounts[1] + expectedSwapAmounts[2] + swapGain;
 
         Token[] memory tokens = new Token[](3);
         tokens[0] = token1;
         tokens[1] = token2;
         tokens[2] = NATIVE_TOKEN;
 
-        vm.expectEmit();
-        emit TokensBurned(admin, tokens, expectedUserRewards, expectedBntBurned);
         carbonVortex.execute(tokens);
 
         uint256[] memory balancesAfter = new uint256[](3);
-        balancesAfter[0] = token1.balanceOf(admin);
-        balancesAfter[1] = token2.balanceOf(admin);
-        balancesAfter[2] = admin.balance;
-        uint256 supplyAfter = toIERC20(bnt).totalSupply();
+        balancesAfter[0] = token1.balanceOf(tank);
+        balancesAfter[1] = token2.balanceOf(tank);
+        balancesAfter[2] = tank.balance;
 
         uint256[] memory balanceGains = new uint256[](3);
         balanceGains[0] = balancesAfter[0] - balancesBefore[0];
         balanceGains[1] = balancesAfter[1] - balancesBefore[1];
         balanceGains[2] = balancesAfter[2] - balancesBefore[2];
 
-        uint256 supplyBurned = supplyBefore - supplyAfter;
-
-        assertEq(supplyBurned, expectedBntBurned);
         assertEq(balanceGains[0], expectedUserRewards[0]);
         assertEq(balanceGains[1], expectedUserRewards[1]);
         assertEq(balanceGains[2], expectedUserRewards[2]);
@@ -241,8 +140,8 @@ contract CarbonVortexTest is TestFixture {
         vm.stopPrank();
     }
 
-    /// @dev test should distribute rewards to user and burn bnt if carbonVortex has token balance
-    function testShouldDistributeRewardsToUserAndBurnIfContractHasTokenBalance() public {
+    /// @dev test should distribute rewards to tank and burn bnt if carbonVortex has token balance
+    function testShouldDistributeRewardsToTankIfContractHasTokenBalance() public {
         vm.startPrank(admin);
         uint256[] memory tokenAmounts = new uint256[](3);
         tokenAmounts[0] = 50 ether;
@@ -253,52 +152,34 @@ contract CarbonVortexTest is TestFixture {
         token2.safeTransfer(address(carbonVortex), tokenAmounts[1]);
         payable(address(carbonVortex)).sendValue(tokenAmounts[2]);
 
-        uint256 rewards = carbonVortex.rewardsPPM();
-
         uint256[] memory balancesBefore = new uint256[](3);
-        balancesBefore[0] = token1.balanceOf(admin);
-        balancesBefore[1] = token2.balanceOf(admin);
-        balancesBefore[2] = admin.balance;
-
-        uint256 supplyBefore = toIERC20(bnt).totalSupply();
+        balancesBefore[0] = token1.balanceOf(tank);
+        balancesBefore[1] = token2.balanceOf(tank);
+        balancesBefore[2] = tank.balance;
 
         uint256[] memory expectedUserRewards = new uint256[](3);
-        uint256[] memory expectedSwapAmounts = new uint256[](3);
 
         for (uint256 i = 0; i < 3; ++i) {
-            uint256 reward = (tokenAmounts[i] * rewards) / PPM_RESOLUTION;
-            expectedUserRewards[i] = reward;
-            expectedSwapAmounts[i] = tokenAmounts[i] - expectedUserRewards[i];
+            expectedUserRewards[i] = tokenAmounts[i];
         }
-
-        // in mock bancor network v3, each token swap adds 300e18 tokens to the output
-        // we swap tokens to BNT, so the end gain is token count * 300 (without counting BNT)
-        uint256 swapGain = 300 ether * 3;
-        uint256 expectedBntBurned = expectedSwapAmounts[0] + expectedSwapAmounts[1] + expectedSwapAmounts[2] + swapGain;
 
         Token[] memory tokens = new Token[](3);
         tokens[0] = token1;
         tokens[1] = token2;
         tokens[2] = NATIVE_TOKEN;
 
-        vm.expectEmit();
-        emit TokensBurned(admin, tokens, expectedUserRewards, expectedBntBurned);
         carbonVortex.execute(tokens);
 
         uint256[] memory balancesAfter = new uint256[](3);
-        balancesAfter[0] = token1.balanceOf(admin);
-        balancesAfter[1] = token2.balanceOf(admin);
-        balancesAfter[2] = admin.balance;
-        uint256 supplyAfter = toIERC20(bnt).totalSupply();
+        balancesAfter[0] = token1.balanceOf(tank);
+        balancesAfter[1] = token2.balanceOf(tank);
+        balancesAfter[2] = tank.balance;
 
         uint256[] memory balanceGains = new uint256[](3);
         balanceGains[0] = balancesAfter[0] - balancesBefore[0];
         balanceGains[1] = balancesAfter[1] - balancesBefore[1];
         balanceGains[2] = balancesAfter[2] - balancesBefore[2];
 
-        uint256 supplyBurned = supplyBefore - supplyAfter;
-
-        assertEq(supplyBurned, expectedBntBurned);
         assertEq(balanceGains[0], expectedUserRewards[0]);
         assertEq(balanceGains[1], expectedUserRewards[1]);
         assertEq(balanceGains[2], expectedUserRewards[2]);
@@ -306,8 +187,8 @@ contract CarbonVortexTest is TestFixture {
         vm.stopPrank();
     }
 
-    /// @dev test should distribute rewards to user and burn bnt if fees have accumulated and carbon vortex has token balance
-    function testShouldDistributeRewardsToUserAndBurnForTokenBalanceAndAccumulatedFees() public {
+    /// @dev test should distribute rewards to tank if fees have accumulated and carbon vortex has token balance
+    function testShouldDistributeRewardsToTankForTokenBalanceAndAccumulatedFees() public {
         vm.startPrank(admin);
         uint256[] memory tokenAmounts = new uint256[](3);
         tokenAmounts[0] = 100 ether;
@@ -322,52 +203,35 @@ contract CarbonVortexTest is TestFixture {
         token2.safeTransfer(address(carbonVortex), tokenAmounts[1] / 2);
         payable(address(carbonVortex)).sendValue(tokenAmounts[2] / 2);
 
-        uint256 rewards = carbonVortex.rewardsPPM();
-
         uint256[] memory balancesBefore = new uint256[](3);
-        balancesBefore[0] = token1.balanceOf(admin);
-        balancesBefore[1] = token2.balanceOf(admin);
-        balancesBefore[2] = admin.balance;
-
-        uint256 supplyBefore = toIERC20(bnt).totalSupply();
+        balancesBefore[0] = token1.balanceOf(tank);
+        balancesBefore[1] = token2.balanceOf(tank);
+        balancesBefore[2] = tank.balance;
 
         uint256[] memory expectedUserRewards = new uint256[](3);
-        uint256[] memory expectedSwapAmounts = new uint256[](3);
 
         for (uint256 i = 0; i < 3; ++i) {
-            uint256 reward = (tokenAmounts[i] * rewards) / PPM_RESOLUTION;
-            expectedUserRewards[i] = reward;
-            expectedSwapAmounts[i] = tokenAmounts[i] - expectedUserRewards[i];
+            expectedUserRewards[i] = tokenAmounts[i];
         }
-
-        // in mock bancor network v3, each token swap adds 300e18 tokens to the output
-        // we swap tokens to BNT, so the end gain is token count * 300 (without counting BNT)
-        uint256 swapGain = 300 ether * 3;
-        uint256 expectedBntBurned = expectedSwapAmounts[0] + expectedSwapAmounts[1] + expectedSwapAmounts[2] + swapGain;
 
         Token[] memory tokens = new Token[](3);
         tokens[0] = token1;
         tokens[1] = token2;
         tokens[2] = NATIVE_TOKEN;
 
-        vm.expectEmit();
-        emit TokensBurned(admin, tokens, expectedUserRewards, expectedBntBurned);
         carbonVortex.execute(tokens);
 
         uint256[] memory balancesAfter = new uint256[](3);
-        balancesAfter[0] = token1.balanceOf(admin);
-        balancesAfter[1] = token2.balanceOf(admin);
-        balancesAfter[2] = admin.balance;
-        uint256 supplyAfter = toIERC20(bnt).totalSupply();
+        balancesAfter[0] = token1.balanceOf(tank);
+        balancesAfter[1] = token2.balanceOf(tank);
+        balancesAfter[2] = tank.balance;
 
         uint256[] memory balanceGains = new uint256[](3);
         balanceGains[0] = balancesAfter[0] - balancesBefore[0];
         balanceGains[1] = balancesAfter[1] - balancesBefore[1];
         balanceGains[2] = balancesAfter[2] - balancesBefore[2];
 
-        uint256 supplyBurned = supplyBefore - supplyAfter;
 
-        assertEq(supplyBurned, expectedBntBurned);
         assertEq(balanceGains[0], expectedUserRewards[0]);
         assertEq(balanceGains[1], expectedUserRewards[1]);
         assertEq(balanceGains[2], expectedUserRewards[2]);
@@ -401,103 +265,6 @@ contract CarbonVortexTest is TestFixture {
         vm.stopPrank();
     }
 
-    /// @dev test should emit TokensBurned event on successful burn
-    function testShouldEmitEventOnSuccessfulBurn() public {
-        vm.startPrank(admin);
-        uint256 amount = 50 ether;
-        carbonController.testSetAccumulatedFees(bnt, amount);
-
-        uint256 rewards = carbonVortex.rewardsPPM();
-
-        Token[] memory tokens = new Token[](1);
-        tokens[0] = bnt;
-        uint256[] memory expectedUserRewards = new uint256[](1);
-
-        // we don't convert bnt, so we expect to get 10% of 50 BNT
-        expectedUserRewards[0] = (amount * rewards) / PPM_RESOLUTION;
-        uint256 expectedBntBurned = amount - expectedUserRewards[0];
-
-        vm.expectEmit();
-        emit TokensBurned(admin, tokens, expectedUserRewards, expectedBntBurned);
-        carbonVortex.execute(tokens);
-    }
-
-    /// @dev test shouldn't emit TokensBurned event on burn with zero amount
-    function testFailShouldntEmitEventOnBurnWithZeroAmount() public {
-        vm.startPrank(admin);
-        uint256 amount = 0;
-        carbonController.testSetAccumulatedFees(bnt, amount);
-
-        uint256 rewards = carbonVortex.rewardsPPM();
-
-        Token[] memory tokens = new Token[](1);
-        tokens[0] = bnt;
-        uint256[] memory expectedUserRewards = new uint256[](1);
-
-        // we don't convert bnt, so we expect to get 10% of 50 BNT
-        expectedUserRewards[0] = (amount * rewards) / PPM_RESOLUTION;
-        uint256 expectedBntBurned = amount - expectedUserRewards[0];
-
-        vm.expectEmit();
-        emit TokensBurned(admin, tokens, expectedUserRewards, expectedBntBurned);
-        carbonVortex.execute(tokens);
-    }
-
-    /// @dev test should increase total burned amount on calling burn
-    function testShouldCorrectlyIncreaseTotalBurnedAmountOnBurn() public {
-        vm.startPrank(admin);
-        uint256 amount = 50 ether;
-        carbonController.testSetAccumulatedFees(bnt, amount);
-
-        uint256 rewards = carbonVortex.rewardsPPM();
-
-        // we don't convert bnt, so we expect to get 10% of 50 BNT
-        uint256 rewardAmount = (amount * rewards) / PPM_RESOLUTION;
-        uint256 burnAmount = amount - rewardAmount;
-
-        Token[] memory tokens = new Token[](1);
-        tokens[0] = bnt;
-
-        uint256 totalBurnedBefore = carbonVortex.totalBurned();
-
-        carbonVortex.execute(tokens);
-
-        uint256 totalBurnedAfter = carbonVortex.totalBurned();
-
-        assertEq(totalBurnedBefore + burnAmount, totalBurnedAfter);
-    }
-
-    /// @dev test should correctly update available tokens on burn
-    function testShouldCorrectlyUpdateAvailableTokensOnBurn() public {
-        vm.startPrank(admin);
-        // expect fee amount to be 0 at the beginning
-        uint256 feeAmountBefore = carbonVortex.availableTokens(bnt);
-        assertEq(feeAmountBefore, 0);
-
-        // set accumulated fees
-        uint256[] memory feeAmounts = new uint256[](2);
-        feeAmounts[0] = 50 ether;
-        feeAmounts[1] = 30 ether;
-        carbonController.testSetAccumulatedFees(bnt, feeAmounts[0]);
-        // transfer tokens to contract
-        bnt.safeTransfer(address(carbonVortex), feeAmounts[1]);
-
-        uint256 expectedFeeAmount = feeAmounts[0] + feeAmounts[1];
-        uint256 actualFeeAmount = carbonVortex.availableTokens(bnt);
-
-        assertEq(expectedFeeAmount, actualFeeAmount);
-
-        Token[] memory tokens = new Token[](1);
-        tokens[0] = bnt;
-        carbonVortex.execute(tokens);
-
-        // expect fee amount to be 0 after
-        uint256 feeAmountAfter = carbonVortex.availableTokens(bnt);
-        assertEq(feeAmountAfter, 0);
-
-        vm.stopPrank();
-    }
-
     /// @dev test should skip tokens which don't have accumulated fees on calling execute
     function testShouldSkipTokensWhichDontHaveAccumulatedFees() public {
         vm.startPrank(admin);
@@ -510,105 +277,19 @@ contract CarbonVortexTest is TestFixture {
         carbonController.testSetAccumulatedFees(bnt, tokenAmounts[1]);
         carbonController.testSetAccumulatedFees(token2, tokenAmounts[2]);
 
-        uint256 rewards = carbonVortex.rewardsPPM();
-
         uint256[] memory rewardAmounts = new uint256[](3);
-        uint256[] memory swapAmounts = new uint256[](3);
 
         for (uint256 i = 0; i < 3; ++i) {
-            rewardAmounts[i] = (tokenAmounts[i] * rewards) / PPM_RESOLUTION;
-            swapAmounts[i] = tokenAmounts[i] - rewardAmounts[i];
+            rewardAmounts[i] = tokenAmounts[i];
         }
-
-        // we don't convert bnt, so we expect to get 10% of 50 BNT
-        uint256 swapGain = 300 ether;
-        uint256 burnAmount = swapAmounts[0] + swapAmounts[1] + swapGain;
 
         Token[] memory tokens = new Token[](3);
         tokens[0] = token1;
         tokens[1] = bnt;
         tokens[2] = token2;
 
-        vm.expectEmit();
-        emit TokensBurned(admin, tokens, rewardAmounts, burnAmount);
         carbonVortex.execute(tokens);
 
-        vm.stopPrank();
-    }
-
-    /// @dev test should approve tokens to bancor network v3 if allowance is less than swap amount
-    function testShouldApproveTokensToBancorNetworkV3IfAllowanceIsLessThanSwapAmount() public {
-        vm.startPrank(user1);
-        uint256[] memory tokenAmounts = new uint256[](2);
-        tokenAmounts[0] = 50 ether;
-        tokenAmounts[1] = 30 ether;
-
-        Token[] memory tokens = new Token[](2);
-        tokens[0] = token1;
-        tokens[1] = token2;
-
-        carbonController.testSetAccumulatedFees(token1, tokenAmounts[0]);
-        carbonController.testSetAccumulatedFees(token2, tokenAmounts[1]);
-
-        for (uint256 i = 0; i < tokens.length; ++i) {
-            Token token = tokens[i];
-            uint256 approveAmount = type(uint256).max;
-            uint256 allowance = token.allowance(address(carbonVortex), bancorNetworkV3);
-            // test should approve max uint256 if allowance is 0
-            if (allowance == 0) {
-                vm.expectEmit(true, true, true, true, Token.unwrap(token));
-                emit Approval(address(carbonVortex), bancorNetworkV3, approveAmount);
-                Token[] memory _tokens = new Token[](1);
-                _tokens[0] = token;
-                carbonVortex.execute(_tokens);
-            }
-        }
-
-        vm.stopPrank();
-    }
-
-    /// @dev test shouldn't approve tokens to bancor network v3 if current allowance is more than swap amount
-    function testFailShouldntApproveTokensToBancorNetworkV3IfAllowanceIsMoreThanSwapAmount() public {
-        vm.startPrank(user1);
-        uint256[] memory tokenAmounts = new uint256[](2);
-        tokenAmounts[0] = 50 ether;
-        tokenAmounts[1] = 30 ether;
-
-        Token[] memory tokens = new Token[](2);
-        tokens[0] = token1;
-        tokens[1] = token2;
-
-        carbonController.testSetAccumulatedFees(token1, tokenAmounts[0]);
-        carbonController.testSetAccumulatedFees(token2, tokenAmounts[1]);
-        // execute burn once so that tokens get approved
-        carbonVortex.execute(tokens);
-
-        // test there is no second approval
-        carbonController.testSetAccumulatedFees(token1, tokenAmounts[0]);
-        carbonController.testSetAccumulatedFees(token2, tokenAmounts[1]);
-
-        uint256 approveAmount = type(uint256).max;
-        vm.expectEmit();
-        emit Approval(address(carbonVortex), bancorNetworkV3, approveAmount);
-        carbonVortex.execute(tokens);
-        vm.stopPrank();
-    }
-
-    /// @dev test should revert if any of the tokens sent is not tradeable on bancor network v3
-    function testShouldRevertIfAnyOfTheTokensSentIsNotTradeableOnBancorNetworkV3() public {
-        vm.startPrank(user1);
-        uint256[] memory tokenAmounts = new uint256[](2);
-        tokenAmounts[0] = 50 ether;
-        tokenAmounts[1] = 30 ether;
-
-        Token[] memory tokens = new Token[](2);
-        tokens[0] = bnt;
-        tokens[1] = nonTradeableToken;
-
-        carbonController.testSetAccumulatedFees(bnt, tokenAmounts[0]);
-        carbonController.testSetAccumulatedFees(nonTradeableToken, tokenAmounts[1]);
-        vm.expectRevert(ICarbonVortex.InvalidToken.selector);
-        carbonVortex.execute(tokens);
         vm.stopPrank();
     }
 
@@ -623,22 +304,89 @@ contract CarbonVortexTest is TestFixture {
         carbonVortex.execute(tokens);
     }
 
-    /// @dev test should revert if any of the tokens sent doesn't exist
-    function testShouldRevertIfAnyOfTheTokensSentDoesntExist() public {
-        vm.prank(user1);
-        Token[] memory tokens = new Token[](3);
-        tokens[0] = bnt;
-        tokens[1] = Token.wrap(address(0));
-        tokens[2] = token2;
-        vm.expectRevert(ICarbonVortex.InvalidToken.selector);
-        carbonVortex.execute(tokens);
-    }
-
     /// @dev test should revert if no tokens are sent
     function testShouldRevertIfNoTokensAreSent() public {
         vm.prank(user1);
         Token[] memory tokens = new Token[](0);
         vm.expectRevert(ICarbonVortex.InvalidTokenLength.selector);
         carbonVortex.execute(tokens);
+    }
+
+    /**
+     * @dev setTank function tests
+     */
+
+    /// @dev test should set tank if new tank is not the same as prev tank
+    function testShouldSetTankIfNewTankIsNotTheSame() public {
+        vm.startPrank(admin);
+
+        address proposedNewTank = address(0x01);
+        address prevTank = carbonVortex.tank();
+
+        vm.expectEmit();
+        emit TankSet({ prevTank: prevTank, newTank: proposedNewTank });
+        carbonVortex.setTank(proposedNewTank);
+
+        address newTank = carbonVortex.tank();
+        assertEq(newTank, proposedNewTank);
+
+        vm.stopPrank();
+    }
+
+    /// @dev test should revert if non owner sets tank
+    function testShouldRevertIfNonOwnerSetsTank() public {
+        address proposedNewTank = address(0x01);
+        vm.expectRevert("Ownable: caller is not the owner");
+        carbonVortex.setTank(proposedNewTank);
+    }
+
+    /// @dev test should revert if invalid address is set for tank
+    function testShouldRevertIfInvalidAddressIsSetForTank() public {
+        vm.startPrank(admin);
+
+        vm.expectRevert(InvalidAddress.selector);
+        carbonVortex.setTank(address(0));
+
+        vm.stopPrank();
+    }
+
+    /// @dev test should not change tank address if same address is input
+    function testShouldNotChangeTankAddressIfSameAddressIsInput() public {
+        vm.startPrank(admin);
+
+        address prevTank = carbonVortex.tank();
+        carbonVortex.setTank(tank);
+        address newTank = carbonVortex.tank();
+
+        assertEq(newTank, prevTank);
+
+        vm.stopPrank();
+    }
+
+    /**
+     * @dev tansferOwnership function tests
+     */
+
+    /// @dev test should set tank if new tank is not the same as prev tank
+    function testShouldTransferOwnershipIfCallerIsTheOwner() public {
+        vm.startPrank(admin);
+
+        address prevOwner = carbonVortex.owner();
+        assertEq(prevOwner, admin);
+
+        vm.expectEmit();
+        emit OwnershipTransferred(prevOwner, admin2);
+        carbonVortex.transferOwnership(admin2);
+
+        address newOwner = carbonVortex.tank();
+        assertEq(newOwner, admin2);
+
+        vm.stopPrank();
+    }
+
+    /// @dev test should revert if non owner tries to transfer ownership
+    function testShouldRevertIfNonOwnerTriesToTransferOwnership() public {
+        vm.expectRevert("Ownable: caller is not the owner");
+        carbonVortex.transferOwnership(admin2);
     }
 }

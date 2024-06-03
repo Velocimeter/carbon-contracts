@@ -21,7 +21,6 @@ import { TestCarbonController } from "../../contracts/helpers/TestCarbonControll
 import { IVoucher } from "../../contracts/voucher/interfaces/IVoucher.sol";
 import { ICarbonController } from "../../contracts/carbon/interfaces/ICarbonController.sol";
 import { ICarbonVortex } from "../../contracts/vortex/interfaces/ICarbonVortex.sol";
-import { IBancorNetwork } from "../../contracts/vortex/CarbonVortex.sol";
 
 import { Token, toIERC20, NATIVE_TOKEN } from "../../contracts/token/Token.sol";
 

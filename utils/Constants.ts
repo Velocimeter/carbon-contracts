@@ -9,7 +9,22 @@ export enum DeploymentNetwork {
     Mainnet = 'mainnet',
     Rinkeby = 'rinkeby',
     Hardhat = 'hardhat',
-    Tenderly = 'tenderly'
+    Tenderly = 'tenderly',
+    Fantom = 'fantom',
+    Base = 'base',
+    Canto = 'canto',
+    Arbitrum = 'arbitrum',
+    Mantle = 'mantle',
+    ZkSync = 'zksync',
+    Gnosis = 'gnosis',
+    Bsc = 'bsc',
+    BaseGoerli = 'base_goerli',
+    Scroll = 'scroll',
+    BeraArtio = 'bera_artio',
+    NeonDevnet = 'neon_devnet',
+    NeonMainnet = 'neon_mainnet',
+    SankoTestnet = 'sanko_testnet',
+    Telos = 'telos'
 }
 
 export const MAX_UINT256 = MaxUint256;

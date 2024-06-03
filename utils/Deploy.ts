@@ -274,6 +274,7 @@ export const deploy = async (options: DeployOptions) => {
         from,
         value,
         args,
+        skipIfAlreadyDeployed: true,
         proxy: isProxy ? proxyOptions : undefined,
         waitConfirmations: WAIT_CONFIRMATIONS,
         log: true

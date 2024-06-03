@@ -28,19 +28,51 @@ interface EnvOptions {
     TENDERLY_PROJECT?: string;
     TENDERLY_TEST_PROJECT?: string;
     TENDERLY_USERNAME?: string;
+    FANTOM_PROVIDER_URL?: string;
+    BASE_PROVIDER_URL?: string;
+    CANTO_PROVIDER_URL?: string;
+    ARBITRUM_PROVIDER_URL?: string;
+    MANTLE_PROVIDER_URL?: string;
+    ZKSYNC_PROVIDER_URL?: string;
+    GNOSIS_PROVIDER_URL?: string;
+    BSC_PROVIDER_URL?: string;
+    BASE_GOERLI_PROVIDER_URL?: string;
+    SCROLL_PROVIDER_URL?: string;
+    BERA_ARTIO_PROVIDER_URL?: string;
+    NEON_DEVNET_PROVIDER_URL?: string;
+    NEON_MAINNET_PROVIDER_URL?: string;
+    SANKO_TESTNET_PROVIDER_URL?: string;
+    TELOS_PROVIDER_URL?: string;
+    PRIVATE_KEY?: string;
 }
 
 const {
     ETHEREUM_PROVIDER_URL = '',
     ETHEREUM_RINKEBY_PROVIDER_URL = '',
-    ETHERSCAN_API_KEY,
+    ETHERSCAN_API_KEY = '',
     GAS_PRICE: gasPrice = 'auto',
     NIGHTLY: isNightly,
     PROFILE: isProfiling,
     TENDERLY_FORK_ID = '',
     TENDERLY_PROJECT = '',
     TENDERLY_TEST_PROJECT = '',
-    TENDERLY_USERNAME = ''
+    TENDERLY_USERNAME = '',
+    FANTOM_PROVIDER_URL = '',
+    BASE_PROVIDER_URL = '',
+    CANTO_PROVIDER_URL = '',
+    ARBITRUM_PROVIDER_URL = '',
+    MANTLE_PROVIDER_URL = '',
+    ZKSYNC_PROVIDER_URL = '',
+    GNOSIS_PROVIDER_URL = '',
+    BSC_PROVIDER_URL = '',
+    BASE_GOERLI_PROVIDER_URL = '',
+    SCROLL_PROVIDER_URL = '',
+    BERA_ARTIO_PROVIDER_URL = '',
+    NEON_DEVNET_PROVIDER_URL = '',
+    NEON_MAINNET_PROVIDER_URL = '',
+    SANKO_TESTNET_PROVIDER_URL = '',
+    TELOS_PROVIDER_URL = '',
+    PRIVATE_KEY = ''
 }: EnvOptions = process.env as any as EnvOptions;
 
 const mochaOptions = (): MochaOptions => {
@@ -73,7 +105,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Mainnet]: {
             chainId: 1,
             url: ETHEREUM_PROVIDER_URL,
-            gasPrice,
+            // gasPrice,
             saveDeployments: true,
             live: true
         },
@@ -90,7 +122,127 @@ const config: HardhatUserConfig = {
             saveDeployments: true,
             live: true,
             gas: 6000000
-        }
+        },
+        [DeploymentNetwork.Fantom]: {
+            chainId: 250,
+            url: FANTOM_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.Base]: {
+            chainId: 8453,
+            url: BASE_PROVIDER_URL,
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.Canto]: {
+            chainId: 7700,
+            url: CANTO_PROVIDER_URL,
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.Arbitrum]: {
+            chainId: 42161,
+            url: ARBITRUM_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.Mantle]: {
+            chainId: 5000,
+            url: MANTLE_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.ZkSync]: {
+            chainId: 324,
+            url: ZKSYNC_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.Gnosis]: {
+            chainId: 100,
+            url: GNOSIS_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.Bsc]: {
+            chainId: 56,
+            url: BSC_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.BaseGoerli]: {
+            chainId: 84531,
+            url: BASE_GOERLI_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.Scroll]: {
+            chainId: 534352,
+            url: SCROLL_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.BeraArtio]: {
+            chainId: 80085,
+            url: BERA_ARTIO_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.NeonDevnet]: {
+            chainId: 245022926,
+            url: NEON_DEVNET_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.NeonMainnet]: {
+            chainId: 245022934,
+            url: NEON_MAINNET_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.SankoTestnet]: {
+            chainId: 1992,
+            url: SANKO_TESTNET_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            // gasPrice,
+            saveDeployments: true,
+            live: true
+        },
+        [DeploymentNetwork.Telos]: {
+            chainId: 40,
+            url: TELOS_PROVIDER_URL,
+            accounts: [PRIVATE_KEY],
+            gas: 3000000000,
+            gasPrice: 30000000000000,
+            gasMultiplier: 2,
+            saveDeployments: true,
+            live: true
+        },
     },
 
     paths: {
@@ -137,7 +289,19 @@ const config: HardhatUserConfig = {
     external: {
         deployments: {
             [DeploymentNetwork.Mainnet]: [`deployments/${DeploymentNetwork.Mainnet}`],
-            [DeploymentNetwork.Tenderly]: [`deployments/${DeploymentNetwork.Tenderly}`]
+            [DeploymentNetwork.Tenderly]: [`deployments/${DeploymentNetwork.Tenderly}`],
+            [DeploymentNetwork.Fantom]: [`deployments/${DeploymentNetwork.Fantom}`],
+            [DeploymentNetwork.Base]: [`deployments/${DeploymentNetwork.Base}`],
+            [DeploymentNetwork.Arbitrum]: [`deployments/${DeploymentNetwork.Arbitrum}`],
+            [DeploymentNetwork.Mantle]: [`deployments/${DeploymentNetwork.Mantle}`],
+            [DeploymentNetwork.Bsc]: [`deployments/${DeploymentNetwork.Bsc}`],
+            [DeploymentNetwork.BaseGoerli]: [`deployments/${DeploymentNetwork.BaseGoerli}`],
+            [DeploymentNetwork.Scroll]: [`deployments/${DeploymentNetwork.Scroll}`],
+            [DeploymentNetwork.BeraArtio]: [`deployments/${DeploymentNetwork.BeraArtio}`],
+            [DeploymentNetwork.NeonDevnet]: [`deployments/${DeploymentNetwork.NeonDevnet}`],
+            [DeploymentNetwork.NeonMainnet]: [`deployments/${DeploymentNetwork.NeonMainnet}`],
+            [DeploymentNetwork.SankoTestnet]: [`deployments/${DeploymentNetwork.SankoTestnet}`],
+            [DeploymentNetwork.Telos]: [`deployments/${DeploymentNetwork.Telos}`]
         }
     },
 
@@ -147,14 +311,36 @@ const config: HardhatUserConfig = {
         disambiguatePaths: false
     },
 
-    verify: {
-        etherscan: {
-            apiKey: ETHERSCAN_API_KEY
-        }
-    },
+    // verify: {
+    //     etherscan: {
+    //         apiKey: ETHERSCAN_API_KEY
+    //     }
+    // },
 
     etherscan: {
-        apiKey: ETHERSCAN_API_KEY
+        apiKey: {
+            mainnet: ETHERSCAN_API_KEY,
+            [DeploymentNetwork.NeonDevnet]: "test",
+            [DeploymentNetwork.NeonMainnet]: "test"
+        },
+        customChains: [
+            {
+                network: DeploymentNetwork.NeonDevnet,
+                chainId: 245022926,
+                urls: {
+                    apiURL: "https://devnet-api.neonscan.org/hardhat/verify",
+                    browserURL: "https://devnet.neonscan.org"
+                }
+            },
+            {
+                network: DeploymentNetwork.NeonMainnet,
+                chainId: 245022934,
+                urls: {
+                    apiURL: "https://api.neonscan.org/hardhat/verify",
+                    browserURL: "https://neonscan.org"
+                }
+            }
+        ]
     },
 
     watcher: {

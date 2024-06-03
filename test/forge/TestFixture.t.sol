@@ -20,7 +20,6 @@ import { TestCarbonController } from "../../contracts/helpers/TestCarbonControll
 
 import { IVoucher } from "../../contracts/voucher/interfaces/IVoucher.sol";
 import { ICarbonController } from "../../contracts/carbon/interfaces/ICarbonController.sol";
-import { IBancorNetwork } from "../../contracts/vortex/CarbonVortex.sol";
 
 import { Token, NATIVE_TOKEN } from "../../contracts/token/Token.sol";
 
@@ -46,6 +45,8 @@ contract TestFixture is Test {
     address payable internal user1;
     address payable internal user2;
     address payable internal emergencyStopper;
+    address payable internal tank;
+    address payable internal admin2;
 
     address internal constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 internal constant MAX_SOURCE_AMOUNT = 100_000_000 ether;
@@ -53,11 +54,13 @@ contract TestFixture is Test {
     function systemFixture() internal {
         utils = new Utilities();
         // create 4 users
-        address payable[] memory users = utils.createUsers(4);
+        address payable[] memory users = utils.createUsers(6);
         admin = users[0];
         user1 = users[1];
         user2 = users[2];
         emergencyStopper = users[3];
+        tank = users[4];
+        admin2 = users[5];
 
         // deploy contracts from admin
         vm.startPrank(admin);
@@ -118,11 +121,11 @@ contract TestFixture is Test {
     /**
      * @dev deploys carbon vortex
      */
-    function deployCarbonVortex(address _carbonController, address _bancorV3Mock) internal {
+    function deployCarbonVortex(address _carbonController) internal {
         // deploy contracts from admin
         vm.startPrank(admin);
         // Deploy Carbon Vortex
-        carbonVortex = new CarbonVortex(bnt, ICarbonController(_carbonController), IBancorNetwork(_bancorV3Mock));
+        carbonVortex = new CarbonVortex(ICarbonController(_carbonController));
         bytes memory vortexInitData = abi.encodeWithSelector(carbonVortex.initialize.selector);
         // Deploy Carbon Vortex proxy
         address carbonVortexProxy = address(
@@ -135,6 +138,9 @@ contract TestFixture is Test {
 
         // Set Carbon Vortex address
         carbonVortex = CarbonVortex(payable(carbonVortexProxy));
+
+        // Set tank in Carbon Vortex
+        carbonVortex.setTank(tank);
 
         // grant fee manager role to carbon vortex
         carbonController.grantRole(carbonController.roleFeesManager(), address(carbonVortex));
@@ -178,31 +184,6 @@ contract TestFixture is Test {
         );
         _voucher = TestVoucher(voucherProxy);
         vm.stopPrank();
-    }
-
-    function deployBancorNetworkV3Mock() internal returns (MockBancorNetworkV3 bancorNetworkV3) {
-        // deploy contracts from admin
-        vm.startPrank(admin);
-        // deploy bancor network v3 mock
-        bancorNetworkV3 = new MockBancorNetworkV3(Token.unwrap(bnt), 300 ether, true);
-
-        // send some tokens to bancor network v3
-        nonTradeableToken.safeTransfer(address(bancorNetworkV3), MAX_SOURCE_AMOUNT);
-        token1.safeTransfer(address(bancorNetworkV3), MAX_SOURCE_AMOUNT);
-        token2.safeTransfer(address(bancorNetworkV3), MAX_SOURCE_AMOUNT);
-        bnt.safeTransfer(address(bancorNetworkV3), MAX_SOURCE_AMOUNT * 5);
-        // send eth to bancor network v3
-        vm.deal(address(bancorNetworkV3), MAX_SOURCE_AMOUNT);
-
-        // set pool collections for v3
-        bancorNetworkV3.setCollectionByPool(bnt);
-        bancorNetworkV3.setCollectionByPool(token1);
-        bancorNetworkV3.setCollectionByPool(token2);
-        bancorNetworkV3.setCollectionByPool(NATIVE_TOKEN);
-
-        vm.stopPrank();
-
-        return bancorNetworkV3;
     }
 
     function transferTokensToCarbonController() internal {
