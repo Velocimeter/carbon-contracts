@@ -1,9 +1,6 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity 0.8.19;
 
-import { Test } from "forge-std/Test.sol";
-
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { ITransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -21,6 +18,7 @@ import { Pairs } from "../../contracts/carbon/Pairs.sol";
 import { TestVoucher } from "../../contracts/helpers/TestVoucher.sol";
 import { TestCarbonController } from "../../contracts/helpers/TestCarbonController.sol";
 import { TestERC20FeeOnTransfer } from "../../contracts/helpers/TestERC20FeeOnTransfer.sol";
+import { TestReentrantToken } from "../../contracts/helpers/TestReentrantToken.sol";
 
 import { IVoucher } from "../../contracts/voucher/interfaces/IVoucher.sol";
 
@@ -33,7 +31,7 @@ contract StrategiesTest is TestFixture {
     uint8 private constant STRATEGY_UPDATE_REASON_EDIT = 0;
     uint8 private constant STRATEGY_UPDATE_REASON_TRADE = 1;
 
-    uint32 private constant DEFAULT_TRADING_FEE_PPM = 2000;
+    uint32 private constant DEFAULT_TRADING_FEE_PPM = 4000;
     uint32 private constant NEW_TRADING_FEE_PPM = 300_000;
 
     uint256 private constant FETCH_AMOUNT = 5;
@@ -401,16 +399,40 @@ contract StrategiesTest is TestFixture {
         vm.stopPrank();
     }
 
-    function testStrategyCreationRevertsWhenPaused() public {
-        vm.startPrank(admin);
-        carbonController.grantRole(carbonController.roleEmergencyStopper(), user2);
-        vm.stopPrank();
-        vm.prank(user2);
-        carbonController.pause();
-
+    /// @dev test that strategy creation reverts if reentrancy is attempted via a malicious token
+    function testStrategyCreationRevertsIfReentrancyIsAttempted(uint8 reenterFunctionIndex) public {
+        vm.startPrank(user1);
+        // bound reentrant function index to valid values 0 - 6
+        // each of the values correspond to a nonReentrant carbonController function which is called in "transferFrom"
+        reenterFunctionIndex = uint8(bound(reenterFunctionIndex, 0, 6));
         Order memory order = generateTestOrder();
-        vm.expectRevert("Pausable: paused");
-        carbonController.createStrategy(token0, token1, [order, order]);
+        TestReentrantToken.ReenterFunctions reenterFunction = TestReentrantToken.ReenterFunctions(reenterFunctionIndex);
+        // deploy malicious token
+        TestReentrantToken reentrantToken = new TestReentrantToken(
+            "TKN1",
+            "TKN1",
+            1_000_000_000 ether,
+            carbonController,
+            reenterFunction
+        );
+        // approve funds to carbon controller
+        reentrantToken.approve(address(carbonController), MAX_SOURCE_AMOUNT);
+        // when attempting to reenter withdrawFees function
+        if (reenterFunctionIndex == 6) {
+            vm.stopPrank();
+            // Grant fees manager role to reentrant token
+            vm.startPrank(admin);
+            carbonController.grantRole(carbonController.roleFeesManager(), address(reentrantToken));
+            vm.stopPrank();
+            vm.startPrank(user1);
+        }
+
+        // test revert for reentrancy token
+        // reverts in the "safeTransferFrom" call in _validateDepositAndRefundExcessNativeToken
+        vm.expectRevert("ReentrancyGuard: reentrant call");
+        carbonController.createStrategy(Token.wrap(address(reentrantToken)), token1, [order, order]);
+
+        vm.stopPrank();
     }
 
     function testStrategyCreationRevertsWhenCapacityIsSmallerThanLiquidity(bool order0Insufficient) public {
@@ -827,25 +849,6 @@ contract StrategiesTest is TestFixture {
         vm.stopPrank();
     }
 
-    function testStrategyUpdateRevertsWhenPaused() public {
-        vm.prank(user1);
-        Order memory order = generateTestOrder();
-        // create strategy
-        uint256 strategyId = carbonController.createStrategy(token0, token1, [order, order]);
-
-        vm.startPrank(admin);
-        carbonController.grantRole(carbonController.roleEmergencyStopper(), user2);
-        vm.stopPrank();
-        vm.prank(user2);
-        carbonController.pause();
-
-        Order memory newOrder = generateTestOrder();
-        newOrder.y += 1000;
-
-        vm.expectRevert("Pausable: paused");
-        carbonController.updateStrategy(strategyId, [order, order], [newOrder, newOrder]);
-    }
-
     function testStrategyUpdateRevertsWhenTryingToUpdateANonExistingStrategyOnAnExistingPair() public {
         vm.startPrank(user1);
         Order memory order = generateTestOrder();
@@ -1174,22 +1177,6 @@ contract StrategiesTest is TestFixture {
         vm.stopPrank();
     }
 
-    function testStrategyDeletionRevertsWhenPaused() public {
-        vm.prank(user1);
-        Order memory order = generateTestOrder();
-        // create strategy
-        uint256 strategyId = carbonController.createStrategy(token0, token1, [order, order]);
-
-        vm.startPrank(admin);
-        carbonController.grantRole(carbonController.roleEmergencyStopper(), user2);
-        vm.stopPrank();
-        vm.prank(user2);
-        carbonController.pause();
-
-        vm.expectRevert("Pausable: paused");
-        carbonController.deleteStrategy(strategyId);
-    }
-
     /**
      * @dev trading fee tests
      */
@@ -1279,7 +1266,7 @@ contract StrategiesTest is TestFixture {
         carbonController.pairTradingFeePPM(token0, token1);
     }
 
-    function testSetsTheDefaultOnInitialization() public {
+    function testSetsTheDefaultOnInitialization() public view {
         uint32 tradingFee = carbonController.tradingFeePPM();
         assertEq(tradingFee, DEFAULT_TRADING_FEE_PPM);
     }
@@ -1637,7 +1624,7 @@ contract StrategiesTest is TestFixture {
         Order memory order = generateTestOrder();
         order.y = 0;
         // create strategy
-        vm.expectRevert(AccessDenied.selector);
+        vm.expectRevert(IVoucher.OnlyController.selector);
         newCarbonController.createStrategy(token0, token1, [order, order]);
 
         vm.stopPrank();
@@ -1658,21 +1645,6 @@ contract StrategiesTest is TestFixture {
     /**
      * @dev withdraw fees tests
      */
-
-    function testFeeWithdrawalRevertsWhenPaused() public {
-        vm.startPrank(admin);
-        carbonController.grantRole(carbonController.roleEmergencyStopper(), user2);
-        vm.stopPrank();
-        vm.prank(user1);
-        Order memory order = generateTestOrder();
-        carbonController.createStrategy(token0, token1, [order, order]);
-        vm.prank(user2);
-        carbonController.pause();
-
-        vm.prank(admin);
-        vm.expectRevert("Pausable: paused");
-        carbonController.withdrawFees(token0, 1, admin);
-    }
 
     function testFeeWithdrawalRevertsWhenCallerIsMissingTheRequiredRole() public {
         vm.prank(user1);

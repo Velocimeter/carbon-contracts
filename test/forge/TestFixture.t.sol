@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity 0.8.19;
 
 import { Test } from "forge-std/Test.sol";
@@ -12,18 +12,18 @@ import { Utilities } from "./Utilities.t.sol";
 import { TestBNT } from "../../contracts/helpers/TestBNT.sol";
 import { TestERC20Burnable } from "../../contracts/helpers/TestERC20Burnable.sol";
 import { TestERC20FeeOnTransfer } from "../../contracts/helpers/TestERC20FeeOnTransfer.sol";
-import { MockBancorNetworkV3 } from "../../contracts/helpers/MockBancorNetworkV3.sol";
 
 import { TestVoucher } from "../../contracts/helpers/TestVoucher.sol";
+import { TestVault } from "../../contracts/helpers/TestVault.sol";
 import { CarbonVortex } from "../../contracts/vortex/CarbonVortex.sol";
 import { CarbonPOL } from "../../contracts/pol/CarbonPOL.sol";
 import { TestCarbonController } from "../../contracts/helpers/TestCarbonController.sol";
 
 import { IVoucher } from "../../contracts/voucher/interfaces/IVoucher.sol";
 import { ICarbonController } from "../../contracts/carbon/interfaces/ICarbonController.sol";
-import { IBancorNetwork } from "../../contracts/vortex/CarbonVortex.sol";
+import { IVault } from "../../contracts/utility/interfaces/IVault.sol";
 
-import { Token, NATIVE_TOKEN } from "../../contracts/token/Token.sol";
+import { Token } from "../../contracts/token/Token.sol";
 
 // solhint-disable max-states-count
 
@@ -49,7 +49,6 @@ contract TestFixture is Test {
     address payable internal admin;
     address payable internal user1;
     address payable internal user2;
-    address payable internal emergencyStopper;
 
     address internal constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 internal constant MAX_SOURCE_AMOUNT = 100_000_000 ether;
@@ -61,7 +60,6 @@ contract TestFixture is Test {
         admin = users[0];
         user1 = users[1];
         user2 = users[2];
-        emergencyStopper = users[3];
 
         // deploy contracts from admin
         vm.startPrank(admin);
@@ -113,8 +111,8 @@ contract TestFixture is Test {
         // Set Carbon Controller address
         carbonController = TestCarbonController(payable(address(carbonController)));
 
-        // Grant minter role for voucher to carbon controller
-        voucher.grantRole(voucher.roleMinter(), address(carbonController));
+        // Set controller address on voucher
+        voucher.setController(address(carbonController));
 
         vm.stopPrank();
     }
@@ -122,11 +120,24 @@ contract TestFixture is Test {
     /**
      * @dev deploys carbon vortex
      */
-    function deployCarbonVortex(address _carbonController, address _bancorV3Mock) internal {
+    function deployCarbonVortex(
+        address _carbonController,
+        address _vault,
+        address _fundReceiver,
+        Token _targetToken,
+        Token _finalTargetToken
+    ) internal {
         // deploy contracts from admin
         vm.startPrank(admin);
+
         // Deploy Carbon Vortex
-        carbonVortex = new CarbonVortex(bnt, ICarbonController(_carbonController), IBancorNetwork(_bancorV3Mock));
+        carbonVortex = new CarbonVortex(
+            ICarbonController(_carbonController),
+            IVault(_vault),
+            payable(_fundReceiver),
+            _targetToken,
+            _finalTargetToken
+        );
         bytes memory vortexInitData = abi.encodeWithSelector(carbonVortex.initialize.selector);
         // Deploy Carbon Vortex proxy
         address carbonVortexProxy = address(
@@ -140,8 +151,13 @@ contract TestFixture is Test {
         // Set Carbon Vortex address
         carbonVortex = CarbonVortex(payable(carbonVortexProxy));
 
-        // grant fee manager role to carbon vortex
+        // grant fee manager role on carbonController to carbon vortex
         carbonController.grantRole(carbonController.roleFeesManager(), address(carbonVortex));
+
+        // grant asset manager role on vault to carbon vortex
+        if (_vault != address(0)) {
+            TestVault(payable(_vault)).grantRole(TestVault(payable(_vault)).roleAssetManager(), address(carbonVortex));
+        }
 
         vm.stopPrank();
     }
@@ -192,7 +208,7 @@ contract TestFixture is Test {
         vm.startPrank(admin);
 
         // Deploy Carbon POL
-        carbonPOL = new CarbonPOL();
+        carbonPOL = new CarbonPOL(bnt);
 
         bytes memory polInitData = abi.encodeWithSelector(carbonPOL.initialize.selector);
         // Deploy Carbon POL proxy
@@ -206,29 +222,13 @@ contract TestFixture is Test {
         vm.stopPrank();
     }
 
-    function deployBancorNetworkV3Mock() internal returns (MockBancorNetworkV3 bancorNetworkV3) {
+    function deployVault() internal returns (address vault) {
         // deploy contracts from admin
-        vm.startPrank(admin);
-        // deploy bancor network v3 mock
-        bancorNetworkV3 = new MockBancorNetworkV3(Token.unwrap(bnt), 300 ether, true);
+        vm.prank(admin);
+        // deploy test vault
+        vault = address(new TestVault());
 
-        // send some tokens to bancor network v3
-        nonTradeableToken.safeTransfer(address(bancorNetworkV3), MAX_SOURCE_AMOUNT);
-        token1.safeTransfer(address(bancorNetworkV3), MAX_SOURCE_AMOUNT);
-        token2.safeTransfer(address(bancorNetworkV3), MAX_SOURCE_AMOUNT);
-        bnt.safeTransfer(address(bancorNetworkV3), MAX_SOURCE_AMOUNT * 5);
-        // send eth to bancor network v3
-        vm.deal(address(bancorNetworkV3), MAX_SOURCE_AMOUNT);
-
-        // set pool collections for v3
-        bancorNetworkV3.setCollectionByPool(bnt);
-        bancorNetworkV3.setCollectionByPool(token1);
-        bancorNetworkV3.setCollectionByPool(token2);
-        bancorNetworkV3.setCollectionByPool(NATIVE_TOKEN);
-
-        vm.stopPrank();
-
-        return bancorNetworkV3;
+        return vault;
     }
 
     function transferTokensToCarbonController() internal {
@@ -250,6 +250,8 @@ contract TestFixture is Test {
         token1.safeTransfer(address(carbonPOL), MAX_SOURCE_AMOUNT * 2);
         token2.safeTransfer(address(carbonPOL), MAX_SOURCE_AMOUNT * 2);
         bnt.safeTransfer(address(carbonPOL), MAX_SOURCE_AMOUNT * 5);
+        // transfer eth
+        vm.deal(address(carbonPOL), MAX_SOURCE_AMOUNT);
         vm.stopPrank();
     }
 }

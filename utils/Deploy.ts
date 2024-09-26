@@ -2,12 +2,10 @@ import { ArtifactData } from '../components/ContractBuilder';
 import { CarbonController, CarbonPOL, CarbonVortex, IVersioned, ProxyAdmin, Voucher } from '../components/Contracts';
 import Logger from '../utils/Logger';
 import { DeploymentNetwork, ZERO_BYTES } from './Constants';
-import { RoleIds } from './Roles';
-import { toWei } from './Types';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { BigNumber, BigNumberish, Contract, ContractInterface, utils } from 'ethers';
 import fs from 'fs';
-import { glob } from 'glob';
+import glob from 'glob';
 import { config, deployments, ethers, getNamedAccounts, tenderly } from 'hardhat';
 import {
     Address,
@@ -16,6 +14,10 @@ import {
     ProxyOptions as DeployProxyOptions
 } from 'hardhat-deploy/types';
 import path from 'path';
+import { toWei } from './Types';
+import { Suite } from 'mocha';
+import chainIds from './chainIds.json';
+import { RoleIds } from './Roles';
 
 const {
     deploy: deployContract,
@@ -27,15 +29,21 @@ const {
     run
 } = deployments;
 
-const { AbiCoder } = utils;
+interface Options {
+    skip?: () => boolean;
+    beforeDeployments?: () => Promise<void>;
+}
 
-const tenderlyNetwork = tenderly.network();
+const { AbiCoder } = utils;
 
 interface EnvOptions {
     TEST_FORK?: boolean;
+    TENDERLY_NETWORK_NAME?: string;
 }
 
-const { TEST_FORK: isTestFork }: EnvOptions = process.env as any as EnvOptions;
+const { TENDERLY_NETWORK_NAME = 'mainnet' }: EnvOptions = process.env as any as EnvOptions;
+
+const networkId = chainIds[TENDERLY_NETWORK_NAME as keyof typeof chainIds];
 
 enum NewInstanceName {
     CarbonController = 'CarbonController',
@@ -70,11 +78,8 @@ export const DeployedContracts = {
     ...DeployedNewContracts
 };
 
-export const isTenderlyFork = () => getNetworkName() === DeploymentNetwork.Tenderly;
-export const isMainnetFork = () => isTenderlyFork();
-export const isMainnet = () => getNetworkName() === DeploymentNetwork.Mainnet || isMainnetFork();
-export const isRinkeby = () => getNetworkName() === DeploymentNetwork.Rinkeby;
-export const isLive = () => (isMainnet() && !isMainnetFork()) || isRinkeby();
+export const isTenderly = () => getNetworkName() === DeploymentNetwork.Tenderly;
+export const isLive = () => !isTenderly();
 
 const TEST_MINIMUM_BALANCE = toWei(10);
 const TEST_FUNDING = toWei(10);
@@ -90,7 +95,7 @@ export const getNamedSigners = async (): Promise<Record<string, SignerWithAddres
 };
 
 export const fundAccount = async (account: string | SignerWithAddress, amount?: BigNumberish) => {
-    if (!isMainnetFork()) {
+    if (!isTenderly()) {
         return;
     }
 
@@ -180,7 +185,7 @@ interface DeployOptions extends BaseDeployOptions {
     proxy?: ProxyOptions;
 }
 
-const PROXY_CONTRACT = 'OptimizedTransparentProxy';
+const PROXY_CONTRACT = 'OptimizedTransparentUpgradeableProxy';
 const INITIALIZE = 'initialize';
 const POST_UPGRADE = 'postUpgrade';
 
@@ -220,7 +225,10 @@ const logParams = async (params: FunctionParams) => {
 
     for (const [i, arg] of args.entries()) {
         const input = fragment.inputs[i];
-        Logger.log(`    ${input.name} (${input.type}): ${arg.toString()}`);
+        if (!input) {
+            continue;
+        }
+        Logger.log(`    ${input.name} (${input.type}): ${arg?.toString()}`);
     }
 };
 
@@ -286,7 +294,7 @@ export const deploy = async (options: DeployOptions) => {
 
         await saveTypes(data);
 
-        await verifyTenderlyFork({
+        await verifyTenderly({
             address: res.address,
             proxy: isProxy,
             implementation: isProxy ? res.implementation : undefined,
@@ -321,11 +329,11 @@ export const deployProxy = async (options: DeployOptions, proxy: ProxyOptions = 
 // ]
 interface UpgradeProxyOptions extends DeployOptions {
     postUpgradeArgs?: TypedParam[];
+    checkVersion?: boolean;
 }
 
 export const upgradeProxy = async (options: UpgradeProxyOptions) => {
-    const { name, contract, from, value, args, postUpgradeArgs, contractArtifactData } =
-        options;
+    const { name, contract, from, value, args, postUpgradeArgs, contractArtifactData } = options;
     const contractName = contract ?? name;
 
     await fundAccount(from);
@@ -344,16 +352,17 @@ export const upgradeProxy = async (options: UpgradeProxyOptions) => {
         const values = postUpgradeArgs.map(({ value }) => value);
         const abiCoder = new AbiCoder();
 
-        upgradeCallData = [abiCoder.encode(types, values)];
+        upgradeCallData = abiCoder.encode(types, values);
     } else {
-        upgradeCallData = [ZERO_BYTES];
+        upgradeCallData = ZERO_BYTES;
     }
+    const checkVersion = options.checkVersion ?? true;
 
     const proxyOptions = {
         proxyContract: PROXY_CONTRACT,
         owner: await proxyAdmin.owner(),
         viaAdminContract: InstanceName.ProxyAdmin,
-        execute: { onUpgrade: { methodName: POST_UPGRADE, args: upgradeCallData } }
+        execute: { onUpgrade: { methodName: POST_UPGRADE, args: [checkVersion, upgradeCallData] } }
     };
 
     Logger.log(`  upgrading proxy ${contractName} V${prevVersion}`);
@@ -375,7 +384,7 @@ export const upgradeProxy = async (options: UpgradeProxyOptions) => {
 
     Logger.log(`  upgraded proxy ${contractName} V${prevVersion} to V${newVersion}`);
 
-    await verifyTenderlyFork({
+    await verifyTenderly({
         name,
         contract: contractName,
         address: res.address,
@@ -495,46 +504,35 @@ export const save = async (deployment: Deployment) => {
         await saveContract(`${name}_Proxy`, { abi, address });
     }
 
-    // publish the contract to a Tenderly fork
+    // publish the contract to a tenderly fork / testnet
     if (!skipVerification) {
-        await verifyTenderlyFork(deployment);
+        await verifyTenderly(deployment);
     }
 };
 
-interface ContractData {
-    name: string;
-    address: Address;
-}
-
-const verifyTenderlyFork = async (deployment: Deployment) => {
-    // verify contracts on Tenderly only for mainnet or tenderly mainnet forks deployments
-    if (!isTenderlyFork() || isTestFork) {
+const verifyTenderly = async (deployment: Deployment) => {
+    // verify contracts only on tenderly
+    if (!isTenderly()) {
         return;
     }
-
     const { name, contract, address, proxy, implementation } = deployment;
-
-    const contracts: ContractData[] = [];
     let contractAddress = address;
-
+    const contracts = [];
     if (proxy) {
         contracts.push({
             name: PROXY_CONTRACT,
             address
         });
-
         contractAddress = implementation!;
     }
-
     contracts.push({
         name: contract ?? name,
         address: contractAddress
     });
-
     for (const contract of contracts) {
         Logger.log('  verifying on tenderly', contract.name, 'at', contract.address);
 
-        await tenderlyNetwork.verify(contract);
+        await tenderly.verify(contract);
     }
 };
 
@@ -560,7 +558,8 @@ export const deploymentTagExists = (tag: string) => {
 const deploymentFileNameToTag = (filename: string) => Number(path.basename(filename).split('-')[0]).toString();
 
 export const getPreviousDeploymentTag = (tag: string) => {
-    const files = fs.readdirSync(config.paths.deploy[0]).sort();
+    const dir = path.join(config.paths.deploy[0], getNetworkNameById(networkId));
+    const files = fs.readdirSync(dir).sort();
 
     const index = files.map((f) => deploymentFileNameToTag(f)).lastIndexOf(tag);
     if (index === -1) {
@@ -571,8 +570,8 @@ export const getPreviousDeploymentTag = (tag: string) => {
 };
 
 export const getLatestDeploymentTag = () => {
-    const files = fs.readdirSync(config.paths.deploy[0]).sort();
-
+    const dir = path.join(config.paths.deploy[0], getNetworkNameById(networkId));
+    const files = fs.readdirSync(dir).sort();
     return Number(files[files.length - 1].split('-')[0]).toString();
 };
 
@@ -608,6 +607,21 @@ export const runPendingDeployments = async () => {
     });
 };
 
+export const getNetworkNameById = (networkId: number | undefined): string => {
+    if (networkId === undefined) {
+        return DeploymentNetwork.Mainnet;
+    }
+
+    // Find the network name by its ID
+    const networkName = (Object.keys(chainIds) as (keyof typeof chainIds)[]).find((key) => chainIds[key] === networkId);
+
+    if (!networkName) {
+        throw new Error(`Cannot find network with id: ${networkId}`);
+    }
+
+    return networkName;
+};
+
 export const getInstanceNameByAddress = (address: string): InstanceName => {
     const externalDeployments = config.external?.deployments![getNetworkName()];
     const deploymentsPath = externalDeployments ? externalDeployments[0] : path.join('deployments', getNetworkName());
@@ -626,4 +640,43 @@ export const getInstanceNameByAddress = (address: string): InstanceName => {
     }
 
     throw new Error(`Unable to find deployment for ${address}`);
+};
+
+export const describeDeployment = (
+    filename: string,
+    fn: (this: Suite) => void,
+    options: Options = {}
+): Suite | void => {
+    const { id, tag } = deploymentMetadata(filename);
+
+    const { skip = () => false, beforeDeployments = () => Promise.resolve() } = options;
+
+    // if we're running against a mainnet fork, ensure to skip tests for already existing deployments
+    if (skip() || deploymentTagExists(tag)) {
+        return describe.skip(id, fn);
+    }
+
+    return describe(id, async function (this: Suite) {
+        before(async () => {
+            if (isLive()) {
+                throw new Error('Unsupported network');
+            }
+
+            await beforeDeployments();
+        });
+
+        beforeEach(async () => {
+            if (isLive()) {
+                throw new Error('Unsupported network');
+            }
+
+            return run(tag, {
+                resetMemory: false,
+                deletePreviousDeployments: false,
+                writeDeploymentsToFiles: true
+            });
+        });
+
+        fn.apply(this);
+    });
 };

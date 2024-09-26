@@ -1,9 +1,6 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity 0.8.19;
 
-import { Test } from "forge-std/Test.sol";
-
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
 import { TestFixture } from "./TestFixture.t.sol";
@@ -20,7 +17,7 @@ import { Strategies } from "../../contracts/carbon/Strategies.sol";
 import { Pair } from "../../contracts/carbon/Pairs.sol";
 import { TestERC20FeeOnTransfer } from "../../contracts/helpers/TestERC20FeeOnTransfer.sol";
 
-import { Token, toIERC20, NATIVE_TOKEN } from "../../contracts/token/Token.sol";
+import { Token, NATIVE_TOKEN } from "../../contracts/token/Token.sol";
 
 contract TradingTest is TestFixture {
     using Address for address payable;
@@ -149,20 +146,6 @@ contract TradingTest is TestFixture {
         vm.startPrank(user1);
         vm.expectRevert(ZeroValue.selector);
         simpleTrade(token0, token1, byTargetAmount, 1, 0);
-        vm.stopPrank();
-    }
-
-    /// @dev test that trading reverts when the contract is paused
-    function testTradingRevertsWhenPaused(bool byTargetAmount) public {
-        vm.startPrank(admin);
-        carbonController.grantRole(carbonController.roleEmergencyStopper(), user2);
-        vm.stopPrank();
-        vm.prank(user2);
-        carbonController.pause();
-
-        vm.startPrank(user1);
-        vm.expectRevert("Pausable: paused");
-        simpleTrade(token0, token1, byTargetAmount, 1, 1);
         vm.stopPrank();
     }
 
