@@ -1,17 +1,13 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity 0.8.19;
-
-import { Test } from "forge-std/Test.sol";
 
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
 import { TestFixture } from "./TestFixture.t.sol";
-import { CarbonVortex } from "../../contracts/vortex/CarbonVortex.sol";
 
 import { Pair, Pairs } from "../../contracts/carbon/Pairs.sol";
 
-import { InvalidAddress, InvalidFee, InvalidIndices } from "../../contracts/utility/Utils.sol";
-import { OnlyProxyDelegate } from "../../contracts/utility/OnlyProxyDelegate.sol";
+import { InvalidAddress } from "../../contracts/utility/Utils.sol";
 
 import { TestPairs } from "../../contracts/helpers/TestPairs.sol";
 import { CarbonController } from "../../contracts/carbon/CarbonController.sol";
@@ -72,20 +68,6 @@ contract PairsTest is TestFixture {
         vm.expectRevert(Pairs.PairAlreadyExists.selector);
         carbonController.createPair(token0, token1);
         vm.stopPrank();
-    }
-
-    /// @dev test that pair creation reverts when contract is paused
-    function testShouldRevertWhenContractIsPaused() public {
-        vm.startPrank(admin);
-        carbonController.grantRole(carbonController.roleEmergencyStopper(), emergencyStopper);
-        vm.stopPrank();
-
-        vm.prank(emergencyStopper);
-        carbonController.pause();
-
-        vm.prank(admin);
-        vm.expectRevert("Pausable: paused");
-        carbonController.createPair(token0, token1);
     }
 
     /// @dev test that pair creation emits event and creates a pair

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity 0.8.19;
 
 import { Test } from "forge-std/Test.sol";
@@ -209,7 +209,7 @@ contract TestCaseParser is Test {
     function parseSourceAndTargetAmounts(
         string memory json,
         string memory templateName
-    ) private returns (uint256 sourceAmount, uint256 targetAmount) {
+    ) private pure returns (uint256 sourceAmount, uint256 targetAmount) {
         string memory initialParseString = string.concat("$.", templateName);
         sourceAmount = vm.parseJsonUint(json, string.concat(initialParseString, ".sourceAmount"));
         targetAmount = vm.parseJsonUint(json, string.concat(initialParseString, ".targetAmount"));
@@ -221,7 +221,7 @@ contract TestCaseParser is Test {
     function parseStrategies(
         string memory json,
         string memory templateName
-    ) private returns (TestStrategy[] memory strategies) {
+    ) private pure returns (TestStrategy[] memory strategies) {
         string memory initialParseString = string.concat("$.", templateName);
         initialParseString = string.concat(initialParseString, ".strategies");
 
@@ -234,7 +234,7 @@ contract TestCaseParser is Test {
         // initialize strategies array
         strategies = new TestStrategy[](strategiesLength);
 
-        for (uint i = 0; i < strategiesLength; ++i) {
+        for (uint256 i = 0; i < strategiesLength; ++i) {
             // get the correct strategy index to parse
             string memory parseString = string.concat(initialParseString, Strings.toString(i));
 
@@ -261,7 +261,7 @@ contract TestCaseParser is Test {
     function parseTradeActions(
         string memory json,
         string memory templateName
-    ) private returns (TradeAction[] memory tradeActions) {
+    ) private pure returns (TradeAction[] memory tradeActions) {
         string memory initialParseString = string.concat("$.", templateName);
         initialParseString = string.concat(initialParseString, ".tradeActions");
 
@@ -274,7 +274,7 @@ contract TestCaseParser is Test {
         // initialize trade actions array
         tradeActions = new TradeAction[](tradeActionsLength);
 
-        for (uint i = 0; i < tradeActionsLength; ++i) {
+        for (uint256 i = 0; i < tradeActionsLength; ++i) {
             // get the correct trade action index to parse
             string memory parseString = string.concat(initialParseString, Strings.toString(i));
 
@@ -294,7 +294,7 @@ contract TestCaseParser is Test {
         return tradeActions;
     }
 
-    /// @dev convert an order struct to uint
+    /// @dev convert an order struct to uint256
     function convertOrderStructToUint(OrderString memory orderString) private pure returns (Order memory order) {
         return
             Order({
