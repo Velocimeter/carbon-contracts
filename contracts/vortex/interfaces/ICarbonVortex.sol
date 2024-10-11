@@ -32,6 +32,11 @@ interface ICarbonVortex is IUpgradeable {
     }
 
     /**
+     * @notice triggered when the tank address is updated
+     */
+    event TankSet(address prevTank, address newTank);
+    
+    /**
      * @notice triggered when trading is reset for a token (dutch auction has been restarted)
      */
     event TradingReset(Token indexed token, Price price);
@@ -101,6 +106,16 @@ interface ICarbonVortex is IUpgradeable {
      */
     function rewardsPPM() external view returns (uint32);
     
+    /**
+     * @dev returns the tank address to collect fees
+     */
+    function tank() external view returns (address);
+
+    /**
+     * @dev set the tank address to collect fees
+     */
+    function setTank(address newTank) external;
+
     /**
     * @notice returns the price reset multiplier
     */

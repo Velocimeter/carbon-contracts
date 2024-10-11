@@ -37,3 +37,6 @@ tenderly.yaml
 
 scripts/test-network.ts
 scripts/temp.ts
+
+out/*
+cache_forge/*

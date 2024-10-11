@@ -521,6 +521,19 @@ const config: HardhatUserConfig = {
     external: {
         deployments: {
             [DeploymentNetwork.Mainnet]: [`deployments/${DeploymentNetwork.Mainnet}`],
+            [DeploymentNetwork.Tenderly]: [`deployments/${DeploymentNetwork.Tenderly}`],
+            [DeploymentNetwork.Fantom]: [`deployments/${DeploymentNetwork.Fantom}`],
+            [DeploymentNetwork.Base]: [`deployments/${DeploymentNetwork.Base}`],
+            [DeploymentNetwork.Arbitrum]: [`deployments/${DeploymentNetwork.Arbitrum}`],
+            [DeploymentNetwork.Mantle]: [`deployments/${DeploymentNetwork.Mantle}`],
+            [DeploymentNetwork.Bsc]: [`deployments/${DeploymentNetwork.Bsc}`],
+            [DeploymentNetwork.BaseGoerli]: [`deployments/${DeploymentNetwork.BaseGoerli}`],
+            [DeploymentNetwork.Scroll]: [`deployments/${DeploymentNetwork.Scroll}`],
+            [DeploymentNetwork.BeraArtio]: [`deployments/${DeploymentNetwork.BeraArtio}`],
+            [DeploymentNetwork.NeonDevnet]: [`deployments/${DeploymentNetwork.NeonDevnet}`],
+            [DeploymentNetwork.NeonMainnet]: [`deployments/${DeploymentNetwork.NeonMainnet}`],
+            [DeploymentNetwork.SankoTestnet]: [`deployments/${DeploymentNetwork.SankoTestnet}`],
+            [DeploymentNetwork.Telos]: [`deployments/${DeploymentNetwork.Telos}`],
             [DeploymentNetwork.Mantle]: [`deployments/${DeploymentNetwork.Mantle}`],
             [DeploymentNetwork.Base]: [`deployments/${DeploymentNetwork.Base}`],
             [DeploymentNetwork.Arbitrum]: [`deployments/${DeploymentNetwork.Arbitrum}`],
@@ -535,6 +548,26 @@ const config: HardhatUserConfig = {
         disambiguatePaths: false
     },
 
+    etherscan: {
+        customChains: [
+            {
+                network: DeploymentNetwork.NeonDevnet,
+                chainId: 245022926,
+                urls: {
+                    apiURL: "https://devnet-api.neonscan.org/hardhat/verify",
+                    browserURL: "https://devnet.neonscan.org"
+                }
+            },
+            {
+                network: DeploymentNetwork.NeonMainnet,
+                chainId: 245022934,
+                urls: {
+                    apiURL: "https://api.neonscan.org/hardhat/verify",
+                    browserURL: "https://neonscan.org"
+                }
+            }
+        ]
+    },
     watcher: {
         test: {
             tasks: [{ command: 'test' }],
