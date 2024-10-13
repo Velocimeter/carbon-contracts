@@ -367,14 +367,14 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
     /**
      * @inheritdoc ICarbonVortex
      */
-    function tank() external view returns (address) {
+    function tank() external view returns (address payable) {
         return _tank;
     }
 
     /**
      * @inheritdoc ICarbonVortex
      */
-    function setTank(address newTank) external onlyOwner validAddress(newTank) {
+    function setTank(address payable newTank) external onlyOwner validAddress(newTank) {
         address prevTank = _tank;
         if (prevTank == newTank) {
             return;
@@ -442,7 +442,12 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
                 // if _finalTargetToken is not set, directly transfer the fees to the transfer address
                 if (Token.unwrap(_finalTargetToken) == address(0)) {
                     // safe due to nonReentrant modifier (forwards all gas fees in case of the native token)
-                    _targetToken.unsafeTransfer(_transferAddress, feeAmount);
+                    _targetToken.unsafeTransfer(_tank, feeAmount / 2);
+
+                    uint256 halfAmount = feeAmount - (feeAmount / 2);
+
+                    // safe due to nonReentrant modifier (forwards all gas fees in case of the native token)
+                    _targetToken.unsafeTransfer(_transferAddress, halfAmount);
                     // increment totalCollected amount
                     _totalCollected += feeAmount;
                 } else if (
@@ -674,7 +679,13 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
         // if no final target token is defined, transfer the target token to `transferAddress`
         if (Token.unwrap(_finalTargetToken) == address(0)) {
             // safe due to nonreenrant modifier (forwards all available gas if token is native)
-            _targetToken.unsafeTransfer(_transferAddress, sourceAmount);
+            _targetToken.unsafeTransfer(_tank, sourceAmount / 2);
+
+            uint128 halfAmount = sourceAmount - (sourceAmount / 2);
+
+            // safe due to nonreenrant modifier (forwards all available gas if token is native)
+            _targetToken.unsafeTransfer(_transferAddress, halfAmount);
+
             // increment total collected in `transferAddress`
             _totalCollected += sourceAmount;
         }
@@ -717,14 +728,23 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
             if (msg.value < sourceAmount) {
                 revert InsufficientNativeTokenSent();
             }
-            payable(_transferAddress).sendValue(sourceAmount);
+            payable(_tank).sendValue(sourceAmount / 2);
+
+            uint128 halfAmount = sourceAmount - (sourceAmount / 2);
+
+            payable(_transferAddress).sendValue(halfAmount);
         } else {
             // revert if unnecessary native token is received
             if (msg.value > 0) {
                 revert UnnecessaryNativeTokenReceived();
             }
+            // transfer the tokens from the user to the _tank
+            _finalTargetToken.safeTransferFrom(msg.sender, _tank, sourceAmount / 2);
+
+            uint128 halfAmount = sourceAmount - (sourceAmount / 2);
+
             // transfer the tokens from the user to the _transferAddress
-            _finalTargetToken.safeTransferFrom(msg.sender, _transferAddress, sourceAmount);
+            _finalTargetToken.safeTransferFrom(msg.sender, _transferAddress, halfAmount);
         }
 
         // transfer the _targetToken to the user
