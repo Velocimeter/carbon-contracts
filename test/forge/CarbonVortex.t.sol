@@ -135,10 +135,11 @@ contract CarbonVortexTest is TestFixture {
     event FeesWithdrawn(Token indexed token, address indexed recipient, uint256 indexed amount, address sender);
 
     /**
-     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
-     * a call to {approve}. `value` is the new allowance.
+     * @dev triggered when the tank address is updated
      */
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event TankSet(address prevTank, address newTank);
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /// @dev function to set up state before tests
     function setUp() public virtual {

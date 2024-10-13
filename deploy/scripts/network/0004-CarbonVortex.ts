@@ -1,5 +1,5 @@
 import { ZERO_ADDRESS } from '../../../utils/Constants';
-import { DeployedContracts, deployProxy, grantRole, InstanceName, setDeploymentMetadata } from '../../../utils/Deploy';
+import { DeployedContracts, deployProxy, execute, grantRole, InstanceName, setDeploymentMetadata } from '../../../utils/Deploy';
 import { Roles } from '../../../utils/Roles';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
@@ -15,7 +15,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
  * 5. For licensed deployments, vault should be address 0 (already configured)
  */
 const func: DeployFunction = async ({ getNamedAccounts }: HardhatRuntimeEnvironment) => {
-    const { deployer, targetToken, finalTargetToken, transferAddress } = await getNamedAccounts();
+    const { deployer, targetToken, finalTargetToken, transferAddress, tank } = await getNamedAccounts();
     const carbonController = await DeployedContracts.CarbonController.deployed();
 
     await deployProxy({
@@ -30,6 +30,13 @@ const func: DeployFunction = async ({ getNamedAccounts }: HardhatRuntimeEnvironm
         name: InstanceName.CarbonController,
         id: Roles.CarbonController.ROLE_FEES_MANAGER,
         member: carbonVortex.address,
+        from: deployer
+    });
+
+    await execute({
+        name: InstanceName.CarbonVortex,
+        methodName: 'setTank',
+        args: [tank],
         from: deployer
     });
 

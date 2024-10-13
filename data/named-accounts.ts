@@ -153,6 +153,46 @@ const telos = (address: string) => {
     };
 }
 
+const canto = (address: string) => ({
+    [DeploymentNetwork.Canto]: address,
+});
+
+const zksync = (address: string) => ({
+    [DeploymentNetwork.ZkSync]: address,
+});
+
+const gnosis = (address: string) => ({
+    [DeploymentNetwork.Gnosis]: address,
+});
+
+const bsc = (address: string) => ({
+    [DeploymentNetwork.BSC]: address,
+});
+
+const baseGoerli = (address: string) => ({
+    [DeploymentNetwork.BaseGoerli]: address,
+});
+
+const scroll = (address: string) => ({
+    [DeploymentNetwork.Scroll]: address,
+});
+
+const beraArtio = (address: string) => ({
+    [DeploymentNetwork.BeraArtio]: address,
+});
+
+const neonDevnet = (address: string) => ({
+    [DeploymentNetwork.NeonDevnet]: address,
+});
+
+const neonMainnet = (address: string) => ({
+    [DeploymentNetwork.NeonMainnet]: address,
+});
+
+const sankoTestnet = (address: string) => ({
+    [DeploymentNetwork.SankoTestnet]: address,
+});
+
 const TestNamedAccounts = {
     ethWhale: {
         ...getAddress(mainnet, '0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf'),
@@ -268,12 +308,63 @@ export const NamedAccounts = {
         ...getAddress(base, 'ledger://0x0f28D58c00F9373C00811E9576eE803B4eF98abe'),
         ...getAddress(arbitrum, 'ledger://0x0f28D58c00F9373C00811E9576eE803B4eF98abe'),
         ...getAddress(mantle, 'ledger://0x5bEBA4D3533a963Dedb270a95ae5f7752fA0Fe22'),
+        // TODO: fill in before deployment
+        ...getAddress(base, '0xe0F7921414e79fE4459148d2e38fb68C9186DECC'),
+        ...getAddress(fantom, '0xc9c8449259566cdC82f396FeF5E6EA4b5015708A'),
+        ...getAddress(canto, '0x9a1f2Ca05af3A76E111558d670fD3d877456e1Ce'),
+        ...getAddress(arbitrum, '0x1ef4046Ca64BBDC05141322645C671a640432Be0'),
+        ...getAddress(mantle, '0x6E0AFB1912d4Cc8edD87E2672bA32952c6BB85C3'),
+        ...getAddress(zksync, '0xa08230ed7B1f0CdF5507BAd2F31dCce57449bd04'),
+        ...getAddress(gnosis, '0x4b1B2F1438C7beD2D3e5eA1Da5b8d14BE8c06fF2'),
+        ...getAddress(bsc, '0xdAefD96D9Bf52D03713FE43A738D561DFF5D255f'),
+        ...getAddress(baseGoerli, '0xcdCb217e9937a4c04C5986Eb56e36b530422f965'),
+        ...getAddress(scroll, '0x6cc70bEE11cCa6A89e595c79A44E165e077Af1b1'),
+        ...getAddress(beraArtio, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
+        ...getAddress(neonDevnet, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
+        ...getAddress(neonMainnet, '0x33F47c7683aB9492fA0A61C0d1F10Ca580AF8679'),
+        ...getAddress(sankoTestnet, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
+        ...getAddress(telos, '0xbcBf0AA76639BBc4CfBCB68f706704512c3f6ec0'),
         default: 0
     },
     deployerV2: { ...getAddress(mainnet, '0xdfeE8DC240c6CadC2c7f7f9c257c259914dEa84E') },
     foundationMultisig: { ...getAddress(mainnet, '0xeBeD45Ca22fcF70AdCcAb7618C51A3Dbb06C8d83') },
     foundationMultisig2: { ...getAddress(mainnet, '0x0c333d48Af19c2b42577f3C8f4779F0347F8C819') },
-    daoMultisig: { ...getAddress(mainnet, '0x7e3692a6d8c34a762079fa9057aed87be7e67cb8') },
+    daoMultisig: {
+        ...getAddress(mainnet, '0x7e3692a6d8c34a762079fa9057aed87be7e67cb8'),
+        ...getAddress(base, '0x15ecCFd11566C71E3d305560d1D8b52859160762'),
+        ...getAddress(canto, '0x45ba3e9DC6F167bb60Ab3FAd4f3e3B653e868DC7'),
+        ...getAddress(fantom, '0x0bfaEc79F6CEbd39c582e2605C4D96F0Cb4e7D9A'),
+        ...getAddress(arbitrum, '0xfee0BAC505E48140A206aB396599BBd6102c2e5C'),
+        ...getAddress(mantle, '0xC5B7af905D3ad69EAbD363500E421A568BDBB3A0'),
+        ...getAddress(zksync, ''),
+        ...getAddress(gnosis, '0x91960b8CD827436946be8150D761a98a865d0336'),
+        ...getAddress(bsc, '0x25d52b429a0AcDDC3A6161D7F66b768fA03237Af'),
+        ...getAddress(baseGoerli, '0xcdCb217e9937a4c04C5986Eb56e36b530422f965'),
+        ...getAddress(scroll, '0xbC18292DE6Cb6c2a9d334AbFdD3a985E65dF55F2'),
+        ...getAddress(beraArtio, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
+        ...getAddress(neonDevnet, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
+        ...getAddress(neonMainnet, '0x606d92c856fEC5b8DfDD268637BBBBbEB1E40dd5'),
+        ...getAddress(sankoTestnet, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
+        ...getAddress(telos, '0xAc54c47425ECb34d540B6cC829A645157D0d416A')
+    },
+    tank: {
+        // TODO: fill in before deployment
+        ...getAddress(base, '0x15ecCFd11566C71E3d305560d1D8b52859160762'),
+        ...getAddress(fantom, '0x0bfaEc79F6CEbd39c582e2605C4D96F0Cb4e7D9A'),
+        ...getAddress(canto, '0x45ba3e9DC6F167bb60Ab3FAd4f3e3B653e868DC7'),
+        ...getAddress(arbitrum, '0xfee0BAC505E48140A206aB396599BBd6102c2e5C'),
+        ...getAddress(mantle, '0xC5B7af905D3ad69EAbD363500E421A568BDBB3A0'),
+        ...getAddress(zksync, ''),
+        ...getAddress(gnosis, '0x91960b8CD827436946be8150D761a98a865d0336'),
+        ...getAddress(bsc, '0x25d52b429a0AcDDC3A6161D7F66b768fA03237Af'),
+        ...getAddress(baseGoerli, '0xcdCb217e9937a4c04C5986Eb56e36b530422f965'),
+        ...getAddress(scroll, '0xbC18292DE6Cb6c2a9d334AbFdD3a985E65dF55F2'),
+        ...getAddress(beraArtio, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
+        ...getAddress(neonDevnet, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
+        ...getAddress(neonMainnet, '0x606d92c856fEC5b8DfDD268637BBBBbEB1E40dd5'),
+        ...getAddress(sankoTestnet, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
+        ...getAddress(telos, '0xAc54c47425ECb34d540B6cC829A645157D0d416A')
+    },
 
     ...TokenNamedAccounts,
     ...TestNamedAccounts,
