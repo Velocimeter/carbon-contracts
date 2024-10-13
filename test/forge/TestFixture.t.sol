@@ -50,6 +50,7 @@ contract TestFixture is Test {
     address payable internal user1;
     address payable internal user2;
     address payable internal tank;
+    address payable internal admin2;
 
     address internal constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 internal constant MAX_SOURCE_AMOUNT = 100_000_000 ether;
@@ -57,11 +58,12 @@ contract TestFixture is Test {
     function systemFixture() internal {
         utils = new Utilities();
         // create 4 users
-        address payable[] memory users = utils.createUsers(4);
+        address payable[] memory users = utils.createUsers(5);
         admin = users[0];
         user1 = users[1];
         user2 = users[2];
         tank = users[3];
+        admin2 = users[4];
 
         // deploy contracts from admin
         vm.startPrank(admin);
