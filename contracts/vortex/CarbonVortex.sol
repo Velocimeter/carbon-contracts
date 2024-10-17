@@ -387,14 +387,14 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
     /**
      * @inheritdoc ICarbonVortex
      */
-    function tank() external view returns (address) {
+    function tank() external view returns (address payable) {
         return _tank;
     }
 
     /**
      * @inheritdoc ICarbonVortex
      */
-    function setTank(address newTank) external onlyOwner validAddress(newTank) {
+    function setTank(address payable newTank) external onlyOwner validAddress(newTank) {
         address prevTank = _tank;
         if (prevTank == newTank) {
             return;
@@ -1062,12 +1062,22 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
     function _transferProceeds(Token token, uint256 amount) private {
         // increment totalCollected amount
         _totalCollected += amount;
+
+        // if tank address is 0, proceeds stay in the vortex
+        if (_tank == address(0)) {
+            return;
+        }
+        // safe due to nonReentrant modifier (forwards all available gas in case of ETH)
+        token.unsafeTransfer(_tank, amount / 2);
+        
+        uint256 halfAmount = amount - (amount / 2);
+
         // if transfer address is 0, proceeds stay in the vortex
         if (_transferAddress == address(0)) {
             return;
         }
         // safe due to nonReentrant modifier (forwards all available gas in case of ETH)
-        token.unsafeTransfer(_transferAddress, amount);
+        token.unsafeTransfer(_transferAddress, halfAmount);
     }
 
     function uncheckedInc(uint256 i) private pure returns (uint256 j) {
