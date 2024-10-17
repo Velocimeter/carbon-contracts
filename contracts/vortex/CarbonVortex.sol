@@ -96,7 +96,7 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
     address payable private _transferAddress;
 
     // upgrade forward-compatibility storage gap
-    uint256[MAX_GAP - 8] private __gap;
+    uint256[MAX_GAP - 9] private __gap;
 
     /**
      * @dev used to set immutable state variables
