@@ -665,19 +665,23 @@ contract CarbonVortexTest is TestFixture {
         vm.startPrank(user1);
 
         // get transfer address balance before
-        uint256 balanceBefore = targetToken.balanceOf(transferAddress);
+        uint256 balanceTransferAddressBefore = targetToken.balanceOf(transferAddress);
+        uint256 balanceTankBefore = targetToken.balanceOf(tank);
 
         // call execute for the target token
         carbonVortex.execute(tokens);
 
         // get transfer address balance after
-        uint256 balanceAfter = targetToken.balanceOf(transferAddress);
+        uint256 balanceTransferAddressAfter = targetToken.balanceOf(transferAddress);
+        uint256 balanceTankAfter = targetToken.balanceOf(tank);
 
         // calculate reward amount
         uint256 rewardAmount = (accumulatedFees * carbonVortex.rewardsPPM()) / PPM_RESOLUTION;
 
         // assert receiver address received the fees
-        assertEq(balanceAfter - balanceBefore, accumulatedFees - rewardAmount);
+        uint256 totalAmount = accumulatedFees - rewardAmount;
+        assertEq(balanceTankAfter - balanceTankBefore, totalAmount / 2);
+        assertEq(balanceTransferAddressAfter - balanceTransferAddressBefore, totalAmount - (totalAmount / 2));
     }
 
     /// @dev test execute should increment total collected on execute for the target token if the final target token is zero
@@ -1175,7 +1179,9 @@ contract CarbonVortexTest is TestFixture {
         // trade target for final target
         uint128 targetAmount = 1 ether;
 
-        uint256 finalTargetBalanceBefore = finalTargetToken.balanceOf(transferAddress);
+        uint256 finalTargetBalanceTransferAddressBefore = finalTargetToken.balanceOf(transferAddress);
+        uint256 finalTargetBalanceTankBefore = finalTargetToken.balanceOf(tank);
+
 
         // advance time so that the price decays and gets to market price
         // market price = 4000 BNT per 1 ETH - 38.5 days
@@ -1183,18 +1189,27 @@ contract CarbonVortexTest is TestFixture {
 
         // get the expected trade input for 1 ether of target token
         uint128 expectedSourceAmount = carbonVortex.expectedTradeInput(targetToken, targetAmount);
+        uint128 expectedSourceAmountTank = expectedSourceAmount / 2;
+        uint128 expectedSourceAmountTransferAddress = expectedSourceAmount - (expectedSourceAmount / 2);
 
         // approve the source token
         finalTargetToken.safeApprove(address(carbonVortex), expectedSourceAmount);
         // trade
         carbonVortex.trade(targetToken, targetAmount, expectedSourceAmount);
 
-        uint256 finalTargetBalanceAfter = finalTargetToken.balanceOf(transferAddress);
+        uint256 finalTargetBalanceAfterTransferAddress = finalTargetToken.balanceOf(transferAddress);
 
-        uint256 balanceGain = finalTargetBalanceAfter - finalTargetBalanceBefore;
+        uint256 balanceGainTransferAddress = finalTargetBalanceAfterTransferAddress - finalTargetBalanceTransferAddressBefore;
 
         // assert that `transferAddress` received the final target token
-        assertEq(balanceGain, expectedSourceAmount);
+        assertEq(balanceGainTransferAddress, expectedSourceAmountTransferAddress);
+
+        uint256 finalTargetBalanceAfterTank = finalTargetToken.balanceOf(tank);
+
+        uint256 balanceGainTank = finalTargetBalanceAfterTank - finalTargetBalanceTankBefore;
+
+        // assert that `transferAddress` received the final target token
+        assertEq(balanceGainTank, expectedSourceAmountTank);
     }
 
     function testTradingTargetTokenForTokenShouldSendTokenBalanceToTheUser() public {
@@ -1427,16 +1442,20 @@ contract CarbonVortexTest is TestFixture {
         uint128 targetAmount = 1 ether;
         uint128 sourceAmount = carbonVortex.expectedTradeInput(token1, targetAmount);
 
-        uint256 balanceBefore = targetToken.balanceOf(transferAddress);
+        uint256 balanceTransferAddressBefore = targetToken.balanceOf(transferAddress);
+        uint256 balanceTankBefore = targetToken.balanceOf(tank);
 
         // trade (send sourceAmount of native token because the target token is native)
         carbonVortex.trade{ value: sourceAmount }(token1, targetAmount, sourceAmount);
 
-        uint256 balanceAfter = targetToken.balanceOf(transferAddress);
+        uint256 balanceTransferAddressAfter = targetToken.balanceOf(transferAddress);
+        uint256 balanceTankAfter = targetToken.balanceOf(tank);
 
-        uint256 balanceGain = balanceAfter - balanceBefore;
+        uint256 balanceGainTransferAddress = balanceTransferAddressAfter - balanceTransferAddressBefore;
+        uint256 balanceGainTank= balanceTankAfter - balanceTankBefore;
 
-        assertEq(balanceGain, sourceAmount);
+        assertEq(balanceGainTank, sourceAmount / 2);
+        assertEq(balanceGainTransferAddress, sourceAmount - (sourceAmount / 2));
     }
 
     /// @dev test that sending any ETH with the transaction
@@ -1558,7 +1577,8 @@ contract CarbonVortexTest is TestFixture {
         vm.warp(45 days);
 
         // get transfer address balance before
-        uint256 balanceBefore = transferAddress.balance;
+        uint256 balanceTransferAddressBefore = transferAddress.balance;
+        uint256 balanceTankBefore = tank.balance;
 
         // get the expected trade input for 1 ether of target token
         uint128 expectedSourceAmount = carbonVortex.expectedTradeInput(targetToken, targetAmount);
@@ -1567,13 +1587,17 @@ contract CarbonVortexTest is TestFixture {
         carbonVortex.trade{ value: expectedSourceAmount }(targetToken, targetAmount, expectedSourceAmount);
 
         // get transfer address balance after
-        uint256 balanceAfter = transferAddress.balance;
+        uint256 balanceTransferAddressAfter = transferAddress.balance;
+        uint256 balanceTankAfter = tank.balance;
 
         // get balance gain
-        uint256 balanceGain = balanceAfter - balanceBefore;
+        uint256 balanceGainTransferaddress = balanceTransferAddressAfter - balanceTransferAddressBefore;
+        uint256 balanceGainTank = balanceTankAfter - balanceTankBefore;
 
         // assert transfer address received the final target token
-        assertEq(balanceGain, expectedSourceAmount);
+        assertEq(balanceGainTank, expectedSourceAmount / 2);
+        assertEq(balanceGainTransferaddress, expectedSourceAmount - (expectedSourceAmount / 2));
+
     }
 
     /// @dev test that if the finalTarget token is the native token, on finalTarget -> target token trades
@@ -3495,5 +3519,83 @@ contract CarbonVortexTest is TestFixture {
         vm.expectRevert("Address: unable to send value, recipient may have reverted");
         testReentrancy.tryReenterCarbonVortexTrade{ value: 1e18 }(tokens[0], 1, 1e18);
         vm.stopPrank();
+    }
+
+    /**
+     * @dev setTank function tests
+     */
+
+    /// @dev test should set tank if new tank is not the same as prev tank
+    function testShouldSetTankIfNewTankIsNotTheSame() public {
+        vm.startPrank(admin);
+
+        address payable proposedNewTank = payable(address(0x01));
+        address payable prevTank = carbonVortex.tank();
+
+        vm.expectEmit();
+        emit TankSet({ prevTank: prevTank, newTank: proposedNewTank });
+        carbonVortex.setTank(proposedNewTank);
+
+        address newTank = carbonVortex.tank();
+        assertEq(newTank, proposedNewTank);
+
+        vm.stopPrank();
+    }
+
+    /// @dev test should revert if non owner sets tank
+    function testShouldRevertIfNonOwnerSetsTank() public {
+        address payable proposedNewTank = payable(address(0x01));
+        vm.expectRevert("Ownable: caller is not the owner");
+        carbonVortex.setTank(proposedNewTank);
+    }
+
+    /// @dev test should revert if invalid address is set for tank
+    function testShouldRevertIfInvalidAddressIsSetForTank() public {
+        vm.startPrank(admin);
+
+        vm.expectRevert(InvalidAddress.selector);
+        carbonVortex.setTank(payable(address(0)));
+
+        vm.stopPrank();
+    }
+
+    /// @dev test should not change tank address if same address is input
+    function testShouldNotChangeTankAddressIfSameAddressIsInput() public {
+        vm.startPrank(admin);
+
+        address prevTank = carbonVortex.tank();
+        carbonVortex.setTank(tank);
+        address newTank = carbonVortex.tank();
+
+        assertEq(newTank, prevTank);
+
+        vm.stopPrank();
+    }
+
+    /**
+     * @dev tansferOwnership function tests
+     */
+
+    /// @dev test should set tank if new tank is not the same as prev tank
+    function testShouldTransferOwnershipIfCallerIsTheOwner() public {
+        vm.startPrank(admin);
+
+        address prevOwner = carbonVortex.owner();
+        assertEq(prevOwner, admin);
+
+        vm.expectEmit();
+        emit OwnershipTransferred(prevOwner, admin2);
+        carbonVortex.transferOwnership(admin2);
+
+        address newOwner = carbonVortex.owner();
+        assertEq(newOwner, admin2);
+
+        vm.stopPrank();
+    }
+
+    /// @dev test should revert if non owner tries to transfer ownership
+    function testShouldRevertIfNonOwnerTriesToTransferOwnership() public {
+        vm.expectRevert("Ownable: caller is not the owner");
+        carbonVortex.transferOwnership(admin2);
     }
 }

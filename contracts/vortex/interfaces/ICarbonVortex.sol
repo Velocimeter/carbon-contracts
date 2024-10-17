@@ -109,12 +109,12 @@ interface ICarbonVortex is IUpgradeable {
     /**
      * @dev returns the tank address to collect fees
      */
-    function tank() external view returns (address);
+    function tank() external view returns (address payable);
 
     /**
      * @dev set the tank address to collect fees
      */
-    function setTank(address newTank) external;
+    function setTank(address payable newTank) external;
 
     /**
     * @notice returns the price reset multiplier
