@@ -454,6 +454,32 @@ const config: HardhatUserConfig = {
                 'x-apikey': process.env.SEI_RPC_API_KEY || ''
             }
         },
+        [DeploymentNetwork.Blast]: {
+            chainId: chainIds[DeploymentNetwork.Blast],
+            url: rpcUrls[DeploymentNetwork.Blast],
+            gasPrice,
+            saveDeployments: true,
+            live: true,
+            deploy: [`deploy/scripts/${DeploymentNetwork.Blast}`],
+            verify: {
+                etherscan: {
+                    apiKey: VERIFY_API_KEY
+                }
+            }
+        },
+        [DeploymentNetwork.Iota]: {
+            chainId: chainIds[DeploymentNetwork.Iota],
+            url: rpcUrls[DeploymentNetwork.Iota],
+            gasPrice,
+            saveDeployments: true,
+            live: true,
+            deploy: [`deploy/scripts/${DeploymentNetwork.Iota}`],
+            verify: {
+                etherscan: {
+                    apiKey: VERIFY_API_KEY
+                }
+            }
+        },
         [DeploymentNetwork.Sepolia]: {
             chainId: chainIds[DeploymentNetwork.Sepolia],
             url: rpcUrls[DeploymentNetwork.Sepolia],
@@ -481,6 +507,60 @@ const config: HardhatUserConfig = {
         project: TENDERLY_PROJECT || TENDERLY_TEST_PROJECT,
         username: TENDERLY_USERNAME,
         privateVerification: true
+    },
+
+    etherscan: {
+        apiKey: VERIFY_API_KEY,
+        customChains: [
+            {
+              network: DeploymentNetwork.Blast,
+              chainId: chainIds[DeploymentNetwork.Blast],
+              urls: {
+                apiURL: "https://api.blastscan.io/api",
+                browserURL: "https://blastscan.io"
+              }
+            },
+            {
+              network: DeploymentNetwork.Celo,
+              chainId: chainIds[DeploymentNetwork.Celo],
+              urls: {
+                apiURL: "https://api.celoscan.io/api",
+                browserURL: "https://celoscan.io"
+              }
+            },
+            {
+              network: DeploymentNetwork.Mantle,
+              chainId: chainIds[DeploymentNetwork.Mantle],
+              urls: {
+                apiURL: "https://api.mantlescan.xyz/api",
+                browserURL: "https://mantlescan.xyz"
+              }
+            },
+            {
+              network: DeploymentNetwork.Linea,
+              chainId: chainIds[DeploymentNetwork.Linea],
+              urls: {
+                apiURL: "https://api.lineascan.build/api",
+                browserURL: "https:///lineascan.build"
+              }
+            },
+            {
+              network: DeploymentNetwork.Sei,
+              chainId: chainIds[DeploymentNetwork.Sei],
+              urls: {
+                apiURL: "https://seitrace.com/pacific-1/api",
+                browserURL: "https://seitrace.com/?chain=pacific-1"
+              }
+            },
+            {
+              network: DeploymentNetwork.Iota,
+              chainId: chainIds[DeploymentNetwork.Iota],
+              urls: {
+                apiURL: "https://explorer.evm.iota.org/api",
+                browserURL: "https://explorer.evm.iota.org"
+              }
+            }
+          ]
     },
 
     solidity: {
