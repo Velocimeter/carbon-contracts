@@ -153,6 +153,19 @@ const telos = (address: string) => {
     };
 };
 
+const iota = (address: string) => {
+    if (TENDERLY_NETWORK_ID === chainIds[DeploymentNetwork.Iota]) {
+        return {
+            [DeploymentNetwork.Iota]: address,
+            [DeploymentNetwork.Tenderly]: address,
+            [DeploymentNetwork.TenderlyTestnet]: address
+        };
+    }
+    return {
+        [DeploymentNetwork.Iota]: address
+    };
+};
+
 const canto = (address: string) => ({
     [DeploymentNetwork.Canto]: address,
 });
@@ -324,6 +337,7 @@ export const NamedAccounts = {
         ...getAddress(neonMainnet, '0x33F47c7683aB9492fA0A61C0d1F10Ca580AF8679'),
         ...getAddress(sankoTestnet, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
         ...getAddress(telos, '0xbcBf0AA76639BBc4CfBCB68f706704512c3f6ec0'),
+        ...getAddress(iota, '0xAD258325a3928496C62e917CFEf005A53d1CB488'),
         default: 0
     },
     deployerV2: { ...getAddress(mainnet, '0xdfeE8DC240c6CadC2c7f7f9c257c259914dEa84E') },
@@ -345,7 +359,8 @@ export const NamedAccounts = {
         ...getAddress(neonDevnet, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
         ...getAddress(neonMainnet, '0x606d92c856fEC5b8DfDD268637BBBBbEB1E40dd5'),
         ...getAddress(sankoTestnet, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
-        ...getAddress(telos, '0xAc54c47425ECb34d540B6cC829A645157D0d416A')
+        ...getAddress(telos, '0xAc54c47425ECb34d540B6cC829A645157D0d416A'),
+        ...getAddress(iota, '0xb0bb991B8d5CBE2000eBb637810E9F6bdB480D72'),
     },
     tank: {
         // TODO: fill in before deployment
@@ -363,7 +378,8 @@ export const NamedAccounts = {
         ...getAddress(neonDevnet, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
         ...getAddress(neonMainnet, '0x606d92c856fEC5b8DfDD268637BBBBbEB1E40dd5'),
         ...getAddress(sankoTestnet, '0x6ce3f37806964100B5F0Ce077C93C7cc14193224'),
-        ...getAddress(telos, '0xAc54c47425ECb34d540B6cC829A645157D0d416A')
+        ...getAddress(telos, '0xAc54c47425ECb34d540B6cC829A645157D0d416A'),
+        ...getAddress(iota, '0xb0bb991B8d5CBE2000eBb637810E9F6bdB480D72'),
     },
 
     ...TokenNamedAccounts,
