@@ -45,11 +45,6 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
     ICarbonController private immutable _carbonController;
     IVault private immutable _vault;
 
-    address payable private _tank;
-
-    // address for token collection - collects all swapped target/final target tokens
-    address payable private immutable _transferAddress;
-
     // first token for swapping
     Token private immutable _targetToken;
     // second (optional) token for swapping
@@ -94,6 +89,8 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
 
     // address for token collection - collects all swapped target/final target tokens
     address payable private _transferAddress;
+
+    address payable private _tank;
 
     // upgrade forward-compatibility storage gap
     uint256[MAX_GAP - 9] private __gap;
@@ -1069,13 +1066,13 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
         }
         // safe due to nonReentrant modifier (forwards all available gas in case of ETH)
         token.unsafeTransfer(_tank, amount / 2);
-        
-        uint256 halfAmount = amount - (amount / 2);
 
         // if transfer address is 0, proceeds stay in the vortex
         if (_transferAddress == address(0)) {
             return;
         }
+        uint256 halfAmount = amount - (amount / 2);
+
         // safe due to nonReentrant modifier (forwards all available gas in case of ETH)
         token.unsafeTransfer(_transferAddress, halfAmount);
     }

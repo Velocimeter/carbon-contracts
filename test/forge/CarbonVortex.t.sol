@@ -664,19 +664,22 @@ contract CarbonVortexTest is TestFixture {
         vm.startPrank(user1);
 
         // get transfer address balance before
-        uint256 balanceBefore = finalTargetToken.balanceOf(transferAddress);
+        uint256 balanceBeforeTransferAddress = finalTargetToken.balanceOf(transferAddress);
+        uint256 balanceBeforeTank = finalTargetToken.balanceOf(tank);
 
         // call execute for the target token
         carbonVortex.execute(tokens);
 
         // get transfer address balance after
-        uint256 balanceAfter = finalTargetToken.balanceOf(transferAddress);
+        uint256 balanceAfterTransferAddress = finalTargetToken.balanceOf(transferAddress);
+        uint256 balanceAfterTank = finalTargetToken.balanceOf(tank);
 
         // calculate reward amount
         uint256 rewardAmount = (accumulatedFees * carbonVortex.rewardsPPM()) / PPM_RESOLUTION;
 
         // assert receiver address received the fees
-        assertEq(balanceAfter - balanceBefore, accumulatedFees - rewardAmount);
+        assertEq(balanceAfterTransferAddress - balanceBeforeTransferAddress, (accumulatedFees - rewardAmount) / 2);
+        assertEq(balanceAfterTank - balanceBeforeTank, (accumulatedFees - rewardAmount) / 2);
     }
 
     /// @dev test execute should transfer tokens directly to the transfer address on execute for the final target token
@@ -712,7 +715,7 @@ contract CarbonVortexTest is TestFixture {
         uint256 rewardAmount = (accumulatedFees * carbonVortex.rewardsPPM()) / PPM_RESOLUTION;
 
         // assert receiver address received the fees
-        assertEq(balanceAfter - balanceBefore, accumulatedFees - rewardAmount);
+        assertEq(balanceAfter - balanceBefore, (accumulatedFees - rewardAmount) / 2);
     }
 
     /// @dev test execute should transfer tokens directly to the transfer address if the final target token is zero
@@ -830,7 +833,7 @@ contract CarbonVortexTest is TestFixture {
         uint256 rewardAmount = (accumulatedFees * carbonVortex.rewardsPPM()) / PPM_RESOLUTION;
 
         // assert receiver address received the fees
-        assertEq(balanceAfter - balanceBefore, accumulatedFees - rewardAmount);
+        assertEq(balanceAfter - balanceBefore, (accumulatedFees - rewardAmount) / 2);
         // assert total collected is updated
         assertEq(totalCollectedAfter - totalCollectedBefore, accumulatedFees - rewardAmount);
     }
@@ -1364,7 +1367,7 @@ contract CarbonVortexTest is TestFixture {
         uint256 balanceGain = finalTargetBalanceAfter - finalTargetBalanceBefore;
 
         // assert that `transferAddress` received the final target token
-        assertEq(balanceGain, expectedSourceAmount);
+        assertEq(balanceGain, expectedSourceAmount / 2);
     }
 
     function testTradingTargetTokenForTokenShouldSendTokenBalanceToTheUser() public {
@@ -1648,7 +1651,7 @@ contract CarbonVortexTest is TestFixture {
 
         uint256 balanceGain = balanceAfter - balanceBefore;
 
-        assertEq(balanceGain, sourceAmount);
+        assertEq(balanceGain, sourceAmount / 2);
     }
 
     /// @dev test that sending any ETH with the transaction
