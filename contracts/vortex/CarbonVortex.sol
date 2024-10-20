@@ -1060,12 +1060,11 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
         // increment totalCollected amount
         _totalCollected += amount;
 
-        // if tank address is 0, proceeds stay in the vortex
-        if (_tank == address(0)) {
-            return;
+        // if tank address is not 0, proceeds stay in the vortex
+        if (_tank != address(0)) {
+            // safe due to nonReentrant modifier (forwards all available gas in case of ETH)
+            token.unsafeTransfer(_tank, amount / 2);
         }
-        // safe due to nonReentrant modifier (forwards all available gas in case of ETH)
-        token.unsafeTransfer(_tank, amount / 2);
 
         // if transfer address is 0, proceeds stay in the vortex
         if (_transferAddress == address(0)) {
