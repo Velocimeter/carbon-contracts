@@ -3784,10 +3784,10 @@ contract CarbonVortexTest is TestFixture {
         vm.stopPrank();
     }
 
-    /// @dev test should revert if non owner sets tank
-    function testShouldRevertIfNonOwnerSetsTank() public {
+    /// @dev test should revert if non admin sets tank
+    function testShouldRevertIfNonAdminSetsTank() public {
         address payable proposedNewTank = payable(address(0x01));
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(AccessDenied.selector);
         carbonVortex.setTank(proposedNewTank);
     }
 
@@ -3812,32 +3812,5 @@ contract CarbonVortexTest is TestFixture {
         assertEq(newTank, prevTank);
 
         vm.stopPrank();
-    }
-
-    /**
-     * @dev tansferOwnership function tests
-     */
-
-    /// @dev test should set tank if new tank is not the same as prev tank
-    function testShouldTransferOwnershipIfCallerIsTheOwner() public {
-        vm.startPrank(admin);
-
-        address prevOwner = carbonVortex.owner();
-        assertEq(prevOwner, admin);
-
-        vm.expectEmit();
-        emit OwnershipTransferred(prevOwner, admin2);
-        carbonVortex.transferOwnership(admin2);
-
-        address newOwner = carbonVortex.owner();
-        assertEq(newOwner, admin2);
-
-        vm.stopPrank();
-    }
-
-    /// @dev test should revert if non owner tries to transfer ownership
-    function testShouldRevertIfNonOwnerTriesToTransferOwnership() public {
-        vm.expectRevert("Ownable: caller is not the owner");
-        carbonVortex.transferOwnership(admin2);
     }
 }

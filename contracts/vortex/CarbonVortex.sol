@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity 0.8.19;
 
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -34,7 +33,7 @@ import { PPM_RESOLUTION, MAX_GAP } from "../utility/Constants.sol";
  * final target token is an additional token to which the target token is traded to (optional)
  * transferAddress is the address to which all target / final target tokens are sent to
  */
-contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable, Utils {
+contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable, Utils {
     using Address for address payable;
     using SafeCast for uint256;
 
@@ -127,7 +126,6 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
     function __CarbonVortex_init(address payable transferAddressInit) internal onlyInitializing {
         __Upgradeable_init();
         __ReentrancyGuard_init();
-        __Ownable_init();
 
         __CarbonVortex_init_unchained(transferAddressInit);
     }
@@ -391,7 +389,7 @@ contract CarbonVortex is ICarbonVortex, Upgradeable, ReentrancyGuardUpgradeable,
     /**
      * @inheritdoc ICarbonVortex
      */
-    function setTank(address payable newTank) external onlyOwner validAddress(newTank) {
+    function setTank(address payable newTank) external onlyAdmin validAddress(newTank) {
         address prevTank = _tank;
         if (prevTank == newTank) {
             return;
