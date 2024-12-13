@@ -42,7 +42,7 @@
     "verify:base": "HARDHAT_NETWORK=base hardhat etherscan-verify --license None --force-license",
     "verify:arbitrum": "HARDHAT_NETWORK=arbitrum hardhat etherscan-verify --license None --force-license",
     "verify:canto": "HARDHAT_NETWORK=canto hardhat sourcify",
-    "verify:mantle": "HARDHAT_NETWORK=mantle hardhat etherscan-verify --license None --force-license",
+    "verify:mantle": "HARDHAT_NETWORK=mantle hardhat sourcify",
     "verify:zksync": "HARDHAT_NETWORK=zksync hardhat etherscan-verify --license None --force-license",
     "verify:bsc": "HARDHAT_NETWORK=bsc hardhat etherscan-verify --license None --force-license",
     "verify:base_goerli": "HARDHAT_NETWORK=base_goerli hardhat etherscan-verify --license None --force-license",

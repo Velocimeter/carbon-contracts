@@ -299,13 +299,22 @@ const BancorNamedAccounts = {
 
 const VortexNamedAccounts = {
     targetToken: {
-        ...getAddress(mainnet, NATIVE_TOKEN_ADDRESS)
+        ...getAddress(mainnet, NATIVE_TOKEN_ADDRESS),
+        ...getAddress(base, '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'), // USDC,
+        ...getAddress(fantom, '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'), // WFTM
+        ...getAddress(mantle, '0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8') // WMNT
     },
     finalTargetToken: {
-        ...getAddress(mainnet, '0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C')
+        ...getAddress(mainnet, '0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C'),
+        ...getAddress(base, ZERO_ADDRESS),
+        ...getAddress(fantom, '0x2F733095B80A04b38b0D10cC884524a3d09b836a'), // USDC.e
+        ...getAddress(mantle, '0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9'), // USDC.e
     },
     transferAddress: {
-        ...getAddress(mainnet, '0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C')
+        ...getAddress(mainnet, '0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C'),
+        ...getAddress(base, '0x15ecCFd11566C71E3d305560d1D8b52859160762'),
+        ...getAddress(fantom, '0x0bfaEc79F6CEbd39c582e2605C4D96F0Cb4e7D9A'),
+        ...getAddress(mantle, '0xC5B7af905D3ad69EAbD363500E421A568BDBB3A0')
     }
 };
 

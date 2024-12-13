@@ -1,0 +1,62 @@
+import { ZERO_ADDRESS } from '../../../utils/Constants';
+import { DeployedContracts, deployProxy, execute, grantRole, InstanceName, renounceRole, setDeploymentMetadata } from '../../../utils/Deploy';
+import { Roles } from '../../../utils/Roles';
+import { DeployFunction } from 'hardhat-deploy/types';
+import { HardhatRuntimeEnvironment } from 'hardhat/types';
+
+/**
+ * deploy a new instance of carbon vortex v2.0 with the following configuration:
+ *
+ * 1. target token is *targetToken* - set address in named-accounts VortexNamedAccounts for the chain
+ * 2. final target token is *finalTargetToken* - set address in named-accounts VortexNamedAccounts for the chain (can be zero address)
+ * 3. transferAddress is *transferAddress* - set address in named-accounts VortexNamedAccounts for the chain
+ *    --- this is the address that will receive the target / final target tokens after trade
+ * 4. CarbonController is set as withdraw address (on execute, tokens will be withdrawn from it
+ * 5. For licensed deployments, vault should be address 0 (already configured)
+ */
+const func: DeployFunction = async ({ getNamedAccounts }: HardhatRuntimeEnvironment) => {
+    const { deployer, daoMultisig, targetToken, finalTargetToken, transferAddress, tank } = await getNamedAccounts();
+    const carbonController = await DeployedContracts.CarbonController.deployed();
+
+    await deployProxy({
+        name: InstanceName.CarbonVortex,
+        from: deployer,
+        args: [carbonController.address, ZERO_ADDRESS, targetToken, finalTargetToken]
+    }, {
+        args: [transferAddress]
+    });
+
+    const carbonVortex = await DeployedContracts.CarbonVortex.deployed();
+
+    await execute({
+        name: InstanceName.CarbonVortex,
+        methodName: 'setTank',
+        args: [tank],
+        from: deployer
+    });
+
+    await execute({
+        name: InstanceName.CarbonVortex,
+        methodName: 'setTransferAddress',
+        args: [transferAddress],
+        from: deployer
+    });
+
+    // Grant CarbonVortex admin roles to dao multisig
+    await grantRole({
+        name: InstanceName.CarbonVortex,
+        id: Roles.Upgradeable.ROLE_ADMIN,
+        member: daoMultisig,
+        from: deployer
+    });
+
+    await renounceRole({
+        name: InstanceName.CarbonVortex,
+        id: Roles.Upgradeable.ROLE_ADMIN,
+        from: deployer
+    });
+
+    return true;
+};
+
+export default setDeploymentMetadata(__filename, func);

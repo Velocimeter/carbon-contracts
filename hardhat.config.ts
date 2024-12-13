@@ -27,6 +27,8 @@ interface EnvOptions {
     NIGHTLY?: boolean;
     PROFILE?: boolean;
     VERIFY_API_KEY?: string;
+    BASESCAN_API_KEY?: string;
+    FANTOMSCAN_API_KEY?: string;
     TENDERLY_IS_FORK?: boolean;
     TENDERLY_FORK_ID?: string;
     TENDERLY_PROJECT?: string;
@@ -38,6 +40,8 @@ interface EnvOptions {
 const {
     TENDERLY_TESTNET_PROVIDER_URL = '',
     VERIFY_API_KEY = '',
+    BASESCAN_API_KEY = '',
+    FANTOMSCAN_API_KEY = '',
     GAS_PRICE: gasPrice = 'auto',
     TENDERLY_IS_FORK = false,
     TENDERLY_FORK_ID = '',
@@ -72,11 +76,13 @@ const config: HardhatUserConfig = {
             },
             allowUnlimitedContractSize: true,
             saveDeployments: false,
-            live: false
+            live: false,
+            chainId: 31337,
         },
         [DeploymentNetwork.Mainnet]: {
             chainId: chainIds[DeploymentNetwork.Mainnet],
             url: rpcUrls[DeploymentNetwork.Mainnet],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -90,6 +96,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Optimism]: {
             chainId: chainIds[DeploymentNetwork.Optimism],
             url: rpcUrls[DeploymentNetwork.Optimism],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -103,6 +110,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Cronos]: {
             chainId: chainIds[DeploymentNetwork.Cronos],
             url: rpcUrls[DeploymentNetwork.Cronos],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -116,6 +124,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Rootstock]: {
             chainId: chainIds[DeploymentNetwork.Rootstock],
             url: rpcUrls[DeploymentNetwork.Rootstock],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -129,6 +138,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Telos]: {
             chainId: chainIds[DeploymentNetwork.Telos],
             url: rpcUrls[DeploymentNetwork.Telos],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -142,6 +152,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.BSC]: {
             chainId: chainIds[DeploymentNetwork.BSC],
             url: rpcUrls[DeploymentNetwork.BSC],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -155,6 +166,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Gnosis]: {
             chainId: chainIds[DeploymentNetwork.Gnosis],
             url: rpcUrls[DeploymentNetwork.Gnosis],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -168,6 +180,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Polygon]: {
             chainId: chainIds[DeploymentNetwork.Polygon],
             url: rpcUrls[DeploymentNetwork.Polygon],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -181,6 +194,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Fantom]: {
             chainId: chainIds[DeploymentNetwork.Fantom],
             url: rpcUrls[DeploymentNetwork.Fantom],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -194,6 +208,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Hedera]: {
             chainId: chainIds[DeploymentNetwork.Hedera],
             url: rpcUrls[DeploymentNetwork.Hedera],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -207,6 +222,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.ZkSync]: {
             chainId: chainIds[DeploymentNetwork.ZkSync],
             url: rpcUrls[DeploymentNetwork.ZkSync],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -220,6 +236,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.PulseChain]: {
             chainId: chainIds[DeploymentNetwork.PulseChain],
             url: rpcUrls[DeploymentNetwork.PulseChain],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -233,6 +250,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Astar]: {
             chainId: chainIds[DeploymentNetwork.Astar],
             url: rpcUrls[DeploymentNetwork.Astar],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -246,6 +264,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Metis]: {
             chainId: chainIds[DeploymentNetwork.Metis],
             url: rpcUrls[DeploymentNetwork.Metis],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -259,6 +278,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Moonbeam]: {
             chainId: chainIds[DeploymentNetwork.Moonbeam],
             url: rpcUrls[DeploymentNetwork.Moonbeam],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -272,6 +292,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Kava]: {
             chainId: chainIds[DeploymentNetwork.Kava],
             url: rpcUrls[DeploymentNetwork.Kava],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -285,6 +306,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Mantle]: {
             chainId: chainIds[DeploymentNetwork.Mantle],
             url: rpcUrls[DeploymentNetwork.Mantle],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -298,6 +320,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Canto]: {
             chainId: chainIds[DeploymentNetwork.Canto],
             url: rpcUrls[DeploymentNetwork.Canto],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -311,6 +334,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Klaytn]: {
             chainId: chainIds[DeploymentNetwork.Klaytn],
             url: rpcUrls[DeploymentNetwork.Klaytn],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -324,19 +348,21 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Base]: {
             chainId: chainIds[DeploymentNetwork.Base],
             url: rpcUrls[DeploymentNetwork.Base],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
             deploy: [`deploy/scripts/${DeploymentNetwork.Base}`],
             verify: {
                 etherscan: {
-                    apiKey: VERIFY_API_KEY
+                    apiKey: BASESCAN_API_KEY
                 }
             }
         },
         [DeploymentNetwork.Fusion]: {
             chainId: chainIds[DeploymentNetwork.Fusion],
             url: rpcUrls[DeploymentNetwork.Fusion],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -350,6 +376,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Mode]: {
             chainId: chainIds[DeploymentNetwork.Mode],
             url: rpcUrls[DeploymentNetwork.Mode],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -363,6 +390,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Arbitrum]: {
             chainId: chainIds[DeploymentNetwork.Arbitrum],
             url: rpcUrls[DeploymentNetwork.Arbitrum],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -376,6 +404,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Celo]: {
             chainId: chainIds[DeploymentNetwork.Celo],
             url: rpcUrls[DeploymentNetwork.Celo],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -389,6 +418,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Avalanche]: {
             chainId: chainIds[DeploymentNetwork.Avalanche],
             url: rpcUrls[DeploymentNetwork.Avalanche],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -402,6 +432,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Linea]: {
             chainId: chainIds[DeploymentNetwork.Linea],
             url: rpcUrls[DeploymentNetwork.Linea],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -415,6 +446,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Scroll]: {
             chainId: chainIds[DeploymentNetwork.Scroll],
             url: rpcUrls[DeploymentNetwork.Scroll],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -428,6 +460,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Aurora]: {
             chainId: chainIds[DeploymentNetwork.Aurora],
             url: rpcUrls[DeploymentNetwork.Aurora],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -441,6 +474,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Sei]: {
             chainId: chainIds[DeploymentNetwork.Sei],
             url: rpcUrls[DeploymentNetwork.Sei],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -450,13 +484,14 @@ const config: HardhatUserConfig = {
                     apiKey: VERIFY_API_KEY
                 }
             },
-            httpHeaders: { 
+            httpHeaders: {
                 'x-apikey': process.env.SEI_RPC_API_KEY || ''
             }
         },
         [DeploymentNetwork.Blast]: {
             chainId: chainIds[DeploymentNetwork.Blast],
             url: rpcUrls[DeploymentNetwork.Blast],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -470,6 +505,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Iota]: {
             chainId: chainIds[DeploymentNetwork.Iota],
             url: rpcUrls[DeploymentNetwork.Iota],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             gasPrice,
             saveDeployments: true,
             live: true,
@@ -483,6 +519,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Sepolia]: {
             chainId: chainIds[DeploymentNetwork.Sepolia],
             url: rpcUrls[DeploymentNetwork.Sepolia],
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             saveDeployments: true,
             live: true,
             deploy: [`deploy/scripts/${DeploymentNetwork.Sepolia}`],
@@ -495,6 +532,7 @@ const config: HardhatUserConfig = {
         [DeploymentNetwork.Tenderly]: {
             chainId: Number(chainIds[TENDERLY_NETWORK_NAME as keyof typeof chainIds]),
             url: TENDERLY_IS_FORK ? `https://rpc.tenderly.co/fork/${TENDERLY_FORK_ID}` : TENDERLY_TESTNET_PROVIDER_URL,
+            accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
             autoImpersonate: true,
             saveDeployments: true,
             live: true,
@@ -510,57 +548,60 @@ const config: HardhatUserConfig = {
     },
 
     etherscan: {
-        apiKey: VERIFY_API_KEY,
+        apiKey: {
+            [DeploymentNetwork.Base]: BASESCAN_API_KEY,
+            [DeploymentNetwork.Fantom]: FANTOMSCAN_API_KEY,
+        },
         customChains: [
             {
-              network: DeploymentNetwork.Blast,
-              chainId: chainIds[DeploymentNetwork.Blast],
-              urls: {
-                apiURL: "https://api.blastscan.io/api",
-                browserURL: "https://blastscan.io"
-              }
+                network: DeploymentNetwork.Blast,
+                chainId: chainIds[DeploymentNetwork.Blast],
+                urls: {
+                    apiURL: "https://api.blastscan.io/api",
+                    browserURL: "https://blastscan.io"
+                }
             },
             {
-              network: DeploymentNetwork.Celo,
-              chainId: chainIds[DeploymentNetwork.Celo],
-              urls: {
-                apiURL: "https://api.celoscan.io/api",
-                browserURL: "https://celoscan.io"
-              }
+                network: DeploymentNetwork.Celo,
+                chainId: chainIds[DeploymentNetwork.Celo],
+                urls: {
+                    apiURL: "https://api.celoscan.io/api",
+                    browserURL: "https://celoscan.io"
+                }
             },
             {
-              network: DeploymentNetwork.Mantle,
-              chainId: chainIds[DeploymentNetwork.Mantle],
-              urls: {
-                apiURL: "https://api.mantlescan.xyz/api",
-                browserURL: "https://mantlescan.xyz"
-              }
+                network: DeploymentNetwork.Mantle,
+                chainId: chainIds[DeploymentNetwork.Mantle],
+                urls: {
+                    apiURL: "https://api.mantlescan.xyz/api",
+                    browserURL: "https://mantlescan.xyz"
+                }
             },
             {
-              network: DeploymentNetwork.Linea,
-              chainId: chainIds[DeploymentNetwork.Linea],
-              urls: {
-                apiURL: "https://api.lineascan.build/api",
-                browserURL: "https:///lineascan.build"
-              }
+                network: DeploymentNetwork.Linea,
+                chainId: chainIds[DeploymentNetwork.Linea],
+                urls: {
+                    apiURL: "https://api.lineascan.build/api",
+                    browserURL: "https:///lineascan.build"
+                }
             },
             {
-              network: DeploymentNetwork.Sei,
-              chainId: chainIds[DeploymentNetwork.Sei],
-              urls: {
-                apiURL: "https://seitrace.com/pacific-1/api",
-                browserURL: "https://seitrace.com/?chain=pacific-1"
-              }
+                network: DeploymentNetwork.Sei,
+                chainId: chainIds[DeploymentNetwork.Sei],
+                urls: {
+                    apiURL: "https://seitrace.com/pacific-1/api",
+                    browserURL: "https://seitrace.com/?chain=pacific-1"
+                }
             },
             {
-              network: DeploymentNetwork.Iota,
-              chainId: chainIds[DeploymentNetwork.Iota],
-              urls: {
-                apiURL: "https://explorer.evm.iota.org/api",
-                browserURL: "https://explorer.evm.iota.org"
-              }
+                network: DeploymentNetwork.Iota,
+                chainId: chainIds[DeploymentNetwork.Iota],
+                urls: {
+                    apiURL: "https://explorer.evm.iota.org/api",
+                    browserURL: "https://explorer.evm.iota.org"
+                }
             }
-          ]
+        ]
     },
 
     solidity: {
@@ -606,7 +647,6 @@ const config: HardhatUserConfig = {
             [DeploymentNetwork.Base]: [`deployments/${DeploymentNetwork.Base}`],
             [DeploymentNetwork.Arbitrum]: [`deployments/${DeploymentNetwork.Arbitrum}`],
             [DeploymentNetwork.Mantle]: [`deployments/${DeploymentNetwork.Mantle}`],
-            [DeploymentNetwork.Bsc]: [`deployments/${DeploymentNetwork.Bsc}`],
             [DeploymentNetwork.BaseGoerli]: [`deployments/${DeploymentNetwork.BaseGoerli}`],
             [DeploymentNetwork.Scroll]: [`deployments/${DeploymentNetwork.Scroll}`],
             [DeploymentNetwork.BeraArtio]: [`deployments/${DeploymentNetwork.BeraArtio}`],
@@ -614,10 +654,6 @@ const config: HardhatUserConfig = {
             [DeploymentNetwork.NeonMainnet]: [`deployments/${DeploymentNetwork.NeonMainnet}`],
             [DeploymentNetwork.SankoTestnet]: [`deployments/${DeploymentNetwork.SankoTestnet}`],
             [DeploymentNetwork.Telos]: [`deployments/${DeploymentNetwork.Telos}`],
-            [DeploymentNetwork.Mantle]: [`deployments/${DeploymentNetwork.Mantle}`],
-            [DeploymentNetwork.Base]: [`deployments/${DeploymentNetwork.Base}`],
-            [DeploymentNetwork.Arbitrum]: [`deployments/${DeploymentNetwork.Arbitrum}`],
-            [DeploymentNetwork.Tenderly]: [`deployments/${DeploymentNetwork.Tenderly}`],
             [DeploymentNetwork.TenderlyTestnet]: [`deployments/${DeploymentNetwork.TenderlyTestnet}`]
         }
     },
@@ -628,26 +664,6 @@ const config: HardhatUserConfig = {
         disambiguatePaths: false
     },
 
-    etherscan: {
-        customChains: [
-            {
-                network: DeploymentNetwork.NeonDevnet,
-                chainId: 245022926,
-                urls: {
-                    apiURL: "https://devnet-api.neonscan.org/hardhat/verify",
-                    browserURL: "https://devnet.neonscan.org"
-                }
-            },
-            {
-                network: DeploymentNetwork.NeonMainnet,
-                chainId: 245022934,
-                urls: {
-                    apiURL: "https://api.neonscan.org/hardhat/verify",
-                    browserURL: "https://neonscan.org"
-                }
-            }
-        ]
-    },
     watcher: {
         test: {
             tasks: [{ command: 'test' }],
